@@ -1,0 +1,7 @@
+# 不需要部署到 GitHub Pages 的文件
+*.pdf
+gen_schedule.py
+generate_pdf.py
+schedule.html
+.DS_Store
+Thumbs.db
