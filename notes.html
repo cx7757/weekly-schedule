@@ -3,361 +3,535 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>📚 考公资料速记</title>
+<title>📚 考公知识速记</title>
 <style>
-:root{--bg:#f5f6fa;--card:#fff;--text:#1a1a2e;--sub:#8395a7;--accent:#4a6cf7;--border:#e8ecf1;--shadow:0 2px 12px rgba(0,0,0,.08);--radius:14px;}
-.dark{--bg:#0f0f23;--card:#1a1a2e;--text:#e0e0e0;--sub:#8395a7;--accent:#6c8cff;--border:#2d2d44;--shadow:0 2px 12px rgba(0,0,0,.3);}
+:root{--bg:#f5f6fa;--card:#fff;--text:#1a1a2e;--sub:#8395a7;--accent:#4a6cf7;--accent2:#6c8cff;--border:#e8ecf1;--shadow:0 2px 12px rgba(0,0,0,.08);--radius:14px;}
+.dark{--bg:#0f0f23;--card:#1a1a2e;--text:#e0e0e0;--sub:#8395a7;--accent:#6c8cff;--accent2:#8aa8ff;--border:#2d2d44;--shadow:0 2px 12px rgba(0,0,0,.3);}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);padding:12px 16px 80px;max-width:600px;margin:0 auto;transition:background .3s,color .3s;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);padding:12px 16px 80px;max-width:640px;margin:0 auto;transition:background .3s,color .3s;}
 
 /* Header */
-.header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 0;}
+.header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 0;}
 .back-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
 .back-btn:active{transform:scale(.92);background:var(--accent);color:#fff;border-color:var(--accent);}
 .header-title{font-size:18px;font-weight:800;}
-.header-right{margin-left:auto;}
-.theme-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
-.theme-btn:active{transform:scale(.92);}
+.header-right{margin-left:auto;display:flex;gap:6px;}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.icon-btn:active{transform:scale(.92);}
 
 /* Search */
-.search-wrap{position:relative;margin-bottom:14px;}
+.search-wrap{position:relative;margin-bottom:12px;}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);}
 .search-input{width:100%;padding:10px 12px 10px 36px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;color:var(--text);background:var(--card);font-family:inherit;transition:border-color .2s;}
 .search-input:focus{border-color:var(--accent);}
 .search-input::placeholder{color:var(--sub);}
 
 /* Stats */
-.stats-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px;}
+.stats-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px;flex-wrap:wrap;gap:4px;}
 .stats-info{font-size:12px;color:var(--sub);}
 .stats-total{font-weight:700;color:var(--accent);}
+.stats-filter{font-size:12px;color:var(--accent);font-weight:600;}
 
-/* Tabs */
-.tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.tabs::-webkit-scrollbar{display:none;}
-.tab{padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-weight:600;transition:all .2s;white-space:nowrap;flex-shrink:0;}
-.tab:active{transform:scale(.95);}
-.tab.active{border-color:var(--accent);background:var(--accent);color:#fff;}
+/* Category tabs (大类) */
+.cat-tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.cat-tabs::-webkit-scrollbar{display:none;}
+.cat-tab{padding:7px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-weight:600;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.cat-tab:active{transform:scale(.95);}
+.cat-tab.active{border-color:var(--accent);background:var(--accent);color:#fff;}
+
+/* Sub-category tabs (小类) */
+.sub-tabs{display:flex;gap:5px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.sub-tabs::-webkit-scrollbar{display:none;}
+.sub-tab{padding:5px 12px;border-radius:16px;font-size:11px;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-weight:600;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.sub-tab:active{transform:scale(.95);}
+.sub-tab.active{border-color:var(--accent2);background:var(--accent2);color:#fff;}
+
+/* Breadcrumb */
+.breadcrumb{font-size:12px;color:var(--sub);margin-bottom:10px;display:flex;align-items:center;gap:4px;}
+.breadcrumb span.bc-active{color:var(--accent);font-weight:700;}
 
 /* Section */
-.section{margin-bottom:20px;}
-.section-title{font-size:16px;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--accent);color:var(--text);display:flex;align-items:center;gap:6px;}
+.section{margin-bottom:18px;}
+.section-title{font-size:15px;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--accent);color:var(--text);display:flex;align-items:center;gap:6px;}
+.section-count{font-size:11px;color:var(--sub);font-weight:600;}
 
 /* Item */
-.item{padding:10px 12px;margin-bottom:8px;background:var(--card);border-radius:12px;font-size:13px;line-height:1.7;border-left:3px solid var(--accent);transition:all .15s;box-shadow:var(--shadow);}
+.item{padding:9px 12px;margin-bottom:6px;background:var(--card);border-radius:10px;font-size:13px;line-height:1.7;border-left:3px solid var(--accent);transition:all .15s;box-shadow:var(--shadow);}
 .item:active{transform:scale(.98);}
-.item-num{font-weight:700;color:var(--accent);margin-right:4px;font-size:12px;}
+.item-num{font-weight:700;color:var(--accent);margin-right:4px;font-size:11px;}
 .item mark{background:#ffe066;color:#333;border-radius:2px;padding:0 2px;}
 .dark .item mark{background:#4a3f00;color:#ffe066;}
+
+/* Category colors */
+.item[data-cat="政治"]{border-left-color:#e74c3c;}
+.item[data-cat="经济"]{border-left-color:#f39c12;}
+.item[data-cat="法律"]{border-left-color:#9b59b6;}
+.item[data-cat="历史"]{border-left-color:#2ecc71;}
+.item[data-cat="人文"]{border-left-color:#1abc9c;}
+.item[data-cat="科技"]{border-left-color:#3498db;}
+.item[data-cat="地理"]{border-left-color:#e67e22;}
+.item[data-cat="申论"]{border-left-color:#e91e63;}
 
 /* Empty */
 .empty{text-align:center;padding:40px 20px;color:var(--sub);font-size:14px;}
 .empty-icon{font-size:40px;margin-bottom:10px;}
 
 /* Footer */
-.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:10px 16px;text-align:center;font-size:11px;color:var(--sub);max-width:600px;margin:0 auto;}
+.footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);padding:8px 16px;text-align:center;font-size:11px;color:var(--sub);max-width:640px;margin:0 auto;z-index:5;}
 
 /* Floating back */
 .fab-back{position:fixed;bottom:50px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(74,108,247,.4);display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:10;}
 .fab-back:active{transform:scale(.9);}
+
+/* Home view */
+.home-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px;}
+.home-card{padding:16px 12px;border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow);cursor:pointer;transition:all .2s;text-align:center;border:2px solid transparent;}
+.home-card:active{transform:scale(.96);}
+.home-card:hover{border-color:var(--accent);}
+.home-card-icon{font-size:28px;margin-bottom:6px;}
+.home-card-name{font-size:14px;font-weight:700;margin-bottom:2px;}
+.home-card-count{font-size:11px;color:var(--sub);}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <button class="back-btn" onclick="history.back()" title="返回">←</button>
-  <div class="header-title">📚 考公资料速记</div>
+  <button class="back-btn" onclick="goHome()" title="首页">←</button>
+  <div class="header-title" id="pageTitle">📚 考公知识速记</div>
   <div class="header-right">
-    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
   </div>
 </div>
 
 <div class="search-wrap">
   <span class="search-icon">🔍</span>
-  <input class="search-input" id="searchInput" placeholder="搜索知识点..." oninput="render()">
+  <input class="search-input" id="searchInput" placeholder="搜索知识点..." oninput="onSearch()">
 </div>
 
 <div class="stats-bar">
-  <span class="stats-info" id="statsInfo">共 <span class="stats-total" id="statsTotal">0</span> 条知识点</span>
-  <span class="stats-info" id="statsFilter"></span>
+  <span class="stats-info">共 <span class="stats-total" id="statsTotal">0</span> 条</span>
+  <span class="stats-filter" id="statsFilter"></span>
 </div>
 
-<div class="tabs" id="tabs"></div>
+<div id="navArea"></div>
 <div id="content"></div>
 
-<div class="footer">📊 考公知识点速记 · 离线可用</div>
-
-<button class="fab-back" onclick="history.back()" title="返回计划">📋</button>
+<div class="footer">📊 考公知识点速记 · 8大分类 · 离线可用</div>
+<button class="fab-back" onclick="goHome()" title="首页" id="fabBtn">🏠</button>
 
 <script>
-// ── 知识库数据 ──
-const DB={
-  "时政热点":[
-    {t:"构建现代乡村产业体系，做好"土特产"文章，发展乡村种养殖业、加工流通业、休闲旅游业、农村服务业"},
-    {t:"乡村全面振兴三个重点：提升乡村产业发展水平、乡村建设水平、乡村治理水平"},
-    {t:"粮食安全：播种面积稳定在17.5亿亩左右，谷物面积14.5亿亩左右，推动粮食产能稳步登上1.4万亿斤台阶"},
-    {t:"《规划》九大任务：优化城乡发展局、加快现代农业建设、推动乡村产业高质量发展、大力培养农村人才、繁荣乡村文化、深入推进乡村生态文明建设、建设宜居宜业和美乡村、深化农业农村改革、加强农村基层组织建设"},
-    {t:"2035年目标：乡村振兴取得决定性进展，农业现代化基本实现，农村基本具备现代生活条件"},
-    {t:"2024年农村人居环境整治：卫生厕所普及率75%，生活垃圾收运处理行政村比例90%以上，污水治理管控率超45%"},
-    {t:"农村自来水普及率94%"},
-    {t:"扎实推进乡村"五个振兴"：产业振兴、人才振兴、文化振兴、生态振兴、组织振兴"},
-    {t:"底线任务：确保国家粮食安全，确保农村人口不发生规模性返贫"},
-    {t:"新增26个国家物流枢纽（济宁、宿州、阿克苏）"},
-    {t:"国土绿化：2024年完成超1亿亩，森林可持续经营面积扩大到1000万亩以上，草原综合植被盖度稳定在60%以上"},
-    {t:"《古树名木保护条例》2025年3月18日实施"},
-    {t:"2025年1月五部门联合提出20条金融政策措施（允许外资金融机构开展同类新金融服务、20天内审批决定等6方面）"},
-    {t:"2024年全年国家电网投资超过6500亿元"},
-    {t:"我国造船业三大指标：造船完工量、新接订单量、手持订单量，均居世界首位"},
-    {t:"再分配手段：税收调节、社会保障、财政转移支付、公共服务与福利、价格管制与补贴"},
-    {t:"第三次分配：慈善捐赠、志愿服务、公益金融、社会企业与公益经济、数字公益"},
-    {t:"《数字贸易改革发展意见》：创新为要、安全为基、扩大开放合作共赢、深化改革、系统治理、试点先行重点突破"},
-    {t:"《成品油流通高质量发展意见》：地方政府建立跨部门联合监管机制，落实属地监管职责"},
-    {t:"FAST天眼（500米口径球面射电望远镜），世界最大单口径射电望远镜"},
-    {t:""深海一号"累计生产天然气超100亿立方米，凝析油超100万立方米，连续3年天然气产量30亿立方米以上"},
-    {t:"中国"人造太阳"EAST核聚变实验装置（安徽合肥）"},
-    {t:"2024年我国网民规模达11.08亿人，互联网普及率78.6%，稳居全球第一"},
-    {t:"我国每万人口发明专利14件"},
-    {t:"2025年沿海港口航道测绘：66个重点港口，更新海图221幅次，工作总量20.9万测线公里"},
-    {t:"智慧城市数据流程：电子政务网→通办数字化→决策→城市运行中心"},
-    {t:"漯河舰舷号545，新一代护卫舰，排水量5000吨，隐身技术+作战指挥系统突破"},
-    {t:"中兴煤矿公司旧址（枣庄）——中华民族工业第一张股票"},
-    {t:"美丽中国"1+1+N"：1个中央意见+1个先行示范区+N个分领域行动方案"},
-    {t:"2025新春祝福三希望：提高政治站位画好同心圆、紧扣中心工作积极献策出力、加强自身建设提高履职能力"},
-    {t:"《关于深化养老服务改革发展的意见》：加快养老科技和信息化发展，推动人形机器人、脑机接口、AI等技术产品开发"},
-    {t:"《关于推动文化高质量发展的若干经济政策》：打造中国特色、世界一流的图书馆、博物馆、美术馆、科技馆"},
-    {t:"前台综合受理、后台并联审批、统一窗口出件——一站式服务"},
-    {t:"一般方法/规定/办法用"暂行"的原因：填补空白先行先试、试验探索降低风险、细化配套衔接上位法、过渡衔接、快速响应"},
-    {t:"横琴岛位于珠海市香洲西南，面积是澳门的3倍，北回归线以南"},
-    {t:"哈尔滨第九届亚冬会，主题"冰雪盛典，亚洲欢聚"，以绿色、安全、精彩为原则"},
-    {t:"2025年1月19日《教育强国建设规划纲要》：全面把握教育的政治属性、人民属性、战略属性，建设教育强国龙头是高等教育"},
-    {t:"新四军纪念馆（江苏）、平津战役纪念馆（天津）、陕甘边照金纪念馆（陕西）、红军长征湘江战役纪念园（广西）"},
-  ],
-  "中共党史":[
-    {t:"上海共产党小组是中国第一个共产党组织"},
-    {t:"上海机器工会是我党建立的第一个工会组织"},
-    {t:"中共一大（1921.7.23，上海→嘉兴南湖）：中国共产党成立，通过第一个党纲，选举中央领导机构"},
-    {t:"中共二大（1922.7，上海）：第一次明确提出反帝反封建的民主革命纲领，通过第一部党章，提出民主联合战线"},
-    {t:"中共三大（1923.6，广州）：讨论国共合作，决定共产党以个人身份加入国民党，保持政治、思想、组织上的独立性"},
-    {t:"中共四大（1925，上海）：首次明确提出无产阶级在民主革命中的领导权问题、工农联盟思想，总结国共合作经验"},
-    {t:"八七会议（1927.8.7，汉口）：纠正陈独秀右倾机会主义，确定土地革命+武装反抗国民党，毛泽东提出"政权是由枪杆子中取得的""},
-    {t:"古田会议（1929.12，福建上杭）：确立思想建党政治建军原则，规定红军是执行革命政治任务的武装集团，党对军队绝对领导。标志毛泽东思想正式形成"},
-    {t:"瓦窑堡会议（1935，陕北）：解决抗日民族统一战线问题，批判左倾关门主义，为全民族抗战作理论和政治准备"},
-    {t:"洛川会议（1937.8，陕北洛川）：制定全面抗战路线，确立敌后游击战方针，通过《抗日救国十大纲领》"},
-    {t:"中共七大（1945.4，延安杨家岭）：确立毛泽东思想为党的指导思想并写入党章，概括三大作风（理论联系实际、密切联系群众、批评与自我批评），总结三大法宝（武装斗争、统一战线、党的建设）"},
-    {t:"秋收起义（毛泽东）、百色起义（邓小平）、平型关战役（林彪）、淮海战役（粟裕等）"},
-    {t:"蒋介石发动"四一二"反革命政变"},
-    {t:"黄洋界保卫战后毛泽东写《西江月·井冈山》；吴起镇战役后毛泽东写"谁敢横刀立马？唯我彭大将军""},
-    {t:"党的六大提出"党的总路线是争取群众""},
-    {t:"清涧起义是共产党人在西北地区发动的第一次武装起义"},
-    {t:"1941年中共中央正式确定"七一"为党的生日"},
-    {t:"毛泽东诗词时间：1925《沁园春·长沙》、1933《菩萨蛮·大柏地》、1936《沁园春·雪》、1956《水调歌头·游泳》"},
-    {t:"井冈山精神：坚定信念、艰苦奋斗、实事求是、敢闯新路、依靠群众、勇于胜利"},
-    {t:"延安时期领导集体：毛泽东、朱德、刘少奇、周恩来、任弼时"},
-    {t:"《论持久战》（延安）：强调兵民是胜利之本"},
-    {t:"1931年11月中华苏维埃共和国临时中央政府在江西瑞金叶坪村成立"},
-    {t:"中华苏维埃第一次代表大会（瑞金叶坪村）"},
-    {t:"四平收复战首创我军攻占现代化永久筑城地带之先例"},
-    {t:"孟良崮战役（1947.5）：毛泽东指示陈毅、粟裕指挥，对国民党整编第74师作战"},
-    {t:"抗美援朝：长津湖、上甘岭、金城、水门桥战役"},
-    {t:"台儿庄战役是抗日正面战场取得的第一次大捷"},
-    {t:"黄桥战役创造以少胜多的光辉范例"},
-    {t:"平津战役，我党用和平方式解放北平"},
-    {t:"以少胜多的著名战役：巨鹿之战（项羽破釜沉舟）、官渡之战（曹操vs袁绍）、赤壁之战（孙刘vs曹操）、夷陵之战（陆逊vs刘备）、淝水之战（东晋vs前秦）"},
-    {t:"绍兴会馆（北京）——鲁迅在此创作《狂人日记》"},
-    {t:"《解放思想，实事求是，团结一致向前看》是十一届三中全会的主题报告"},
-  ],
-  "政治理论":[
-    {t:"四项基本原则：社会主义道路、马列毛泽东思想、中共领导、人民民主专政"},
-    {t:"科学发展观：第一要义是发展，核心是以人为本，基本要求是全面协调可持续，根本方法是统筹兼顾"},
-    {t:"1992南方谈话三个"有利于"：是否有利于发展社会主义社会的生产力、增强综合国力、提高人民生活水平"},
-    {t:"三个代表创造性回答了"建设什么样的党、怎样建设党"。本质在于执政为民"},
-    {t:"三个代表：中国共产党始终代表中国先进生产力发展要求、中国先进文化的前进方向、中国最广大人民的根本利益"},
-    {t:"邓小平理论：1982十二大提出"建设有中国特色的社会主义"，十六大正式确定为党的指导思想"},
-    {t:"社会公平正义是社会和谐的基本条件"},
-    {t:"构建社会主义和谐社会的重点是解决人民群众最关心、最直接、最现实的利益问题"},
-    {t:"建设和谐文化的根本是社会主义核心价值体系"},
-    {t:"十五大首次提出"两个一百年"奋斗目标"},
-    {t:"社会主义社会发展的直接动力是改革"},
-    {t:"尊重劳动是核心（十六大：尊重劳动、尊重知识、尊重人才、尊重创造）"},
-    {t:"台湾回归祖国后可以有自己的军队"},
-    {t:"1928-1930毛泽东创作《中国的红色政权为什么能够存在》《反对本本主义》《星星之火，可以燎原》标志着毛泽东思想的形成"},
-    {t:"2005年十六届五中全会将社会主义建设任务表述为"四位一体建设"（经济、政治、文化、社会）"},
-    {t:"党的十九大明确提出社会主要矛盾转化为人民日益增长的美好生活需要和不平衡不充分的发展之间的矛盾"},
-    {t:"二十大对国家安全新观点：国家安全是民族复兴的根基，以新安全格局保障新发展格局"},
-    {t:"全面依法治国必须抓住领导干部这个"关键少数""},
-    {t:"全面依法治国的具体要求：坚持党的领导、坚持中国特色社会主义制度、贯彻中国特色社会主义法治理论"},
-    {t:"我党的自我革命实践以自我监督和人民监督相结合为强大动力"},
-  ],
-  "党建纪律":[
-    {t:"政治纪律是党的纪律中最重要最核心的纪律，是党的全部纪律的基础"},
-    {t:"政治纪律中最根本的是坚定捍卫"两个确立"，坚决做到"两个维护""},
-    {t:"廉洁纪律是实现干部清正、政府清廉、政治清明的关键（重要保障）"},
-    {t:"工作纪律的根本要求：履职尽责、担当作为"},
-    {t:"组织纪律包括民主集中制根本制度和"四个服从"基本原则"},
-    {t:"群众纪律是党的性质和宗旨的体现，是我们区别于其他政治组织的显著标志"},
-    {t:"除名是取消党员资格和党籍，是党内一种组织措施，不是纪律处分"},
-    {t:"十一届三中全会形成了以邓小平为核心的党的第二代领导集体"},
-    {t:"十六大正式提出"三个代表"重要思想"},
-    {t:"十八大提出加强党的思想建设、组织建设、作风建设、制度建设、反腐倡廉建设"},
-    {t:"党八大强调发扬民主，鼓励一切党员和组织的积极性和创造性"},
-    {t:"党第十一届五中全会通过《关于党内政治生活的若干准则》"},
-    {t:"十四大修订党章首次规定党员领导干部必须参加党委（党组）的民主生活会"},
-    {t:"《中共中央关于增强党性的决定》提出领导干部必须参加组织生活，听取党员群众批评"},
-    {t:"中央政治局召开会议：全国人大常委会、国务院、全国政协、最高检、最高法"},
-    {t:"常见党中央机构：中共中央（党最高领导机关）、中央政治局常委会（常设最高领导机构）、中央办公厅（综合办事机构）、中组部（主管人才）、中纪委（最高纪检机关）、中宣部（宣传）、中央军委（最高军事机关）、中央统战部（统战）、中联部（对外工作）、中央书记处（办事机构）"},
-    {t:"基层医疗卫生机构是守护人民群众健康的第一道防线"},
-    {t:"企业与产业工人签订书面劳动合同，严格规范劳务派遣用工"},
-  ],
-  "革命人物":[
-    {t:"彭雪枫：大革命时期开始"出生入死，致力革命二十年"的光辉斗争历程"},
-    {t:"马本斋：组织回民抗日义勇队，奋起抵抗日本侵略军"},
-    {t:"黄公略：参加北伐、广州起义，与朱德、彭德怀、毛泽东并称"朱毛彭黄""},
-    {t:"张太雷：中国共产党最早党员之一，组建广州起义指挥机构"},
-    {t:"2025年1月23日：叶光富获二级航天功勋奖章，李聪、李广苏获"英雄航天员"荣誉称号"},
-    {t:"脱贫攻坚精神：上下同心、尽锐出战、精准务实、开拓创新、攻坚克难、不负人民"},
-    {t:"大庆精神、铁人精神：爱国、创业、求实、奉献"},
-    {t:"三牛精神：为民服务孺子牛、创新发展拓荒牛、艰苦奋斗老黄牛"},
-    {t:"五卅运动口号："上海各界同胞一致起来，打倒帝国主义""废除不平等条约""撤退外国驻华军队""收回租界""},
-  ],
-  "人文历史":[
-    {t:"《团结就是力量》牧虹作词、卢肃作曲，创作于1943年6月"},
-    {t:"《松花江上》张寒晖1936年创作于西安二中"},
-    {t:"《大刀进行曲》麦新1937年7月创作，灵感来源于29军"大刀队"喜峰口战斗"},
-    {t:"《打回老家去》九一八事变后创作，反映东北人民对日寇的愤恨"},
-    {t:"五岳：东岳泰山（山东泰安）、西岳华山（陕西华阴）、南岳衡山（湖南衡阳）、北岳恒山（山西大同浑源）、中岳嵩山（河南登封）"},
-    {t:"四大书院：应天府书院（河南商丘）、岳麓书院（湖南长沙）、白鹿洞书院（江西九江庐山）、嵩阳书院（河南登封）"},
-    {t:"李大钊发表《法俄革命之比较观》《庶民的胜利》《布尔什维主义的胜利》《新纪元》热情讴歌十月革命"},
-    {t:""凿空之旅"指张骞出使西域"},
-    {t:"商鞅变法：废井田，开阡陌，实施土地私有制允许买卖"},
-    {t:"魏国李悝变法（战国变法之始）：第一次完整成功的封建变法。废除世卿世禄、尽地力之教+平籴法、制定《法经》"},
-    {t:"后梁拉开五代十国的序幕；蒙古灭西夏和金，金灭辽"},
-    {t:"三国建国顺序：魏→蜀→吴。六国灭国顺序：韩赵魏楚燕齐（喊赵薇去演戏）"},
-    {t:"明章之治：汉明帝、汉章帝统治时期的大治景象，把东汉推向鼎盛"},
-    {t:"赵匡胤：杯酒释兵权、陈桥兵变、攻灭后蜀"},
-    {t:"项羽巨鹿之战（破釜沉舟）以少胜多击败秦军"},
-    {t:""千里莺啼绿映红，水村山郭酒旗风"描写江南春景（杜牧）"},
-    {t:"问鼎中原出自《左传》，对应楚庄王，指图谋夺取政权"},
-    {t:"九死未悔出自屈原《离骚》；约法三章出自《史记·高祖本纪》"},
-    {t:"昆曲起源于元朝昆山地区，明朝嘉靖年间魏良辅改革"},
-    {t:"王阳明（王守仁）：心学创立者"},
-    {t:"黄宗羲：明末清初思想家，"清初三大儒"之一，被誉为"中国思想启蒙之父""},
-    {t:"甲骨文：商朝晚期王室用于占卜记事的文字，1899年被王懿荣发现"},
-    {t:"《资治通鉴》：北宋司马光主编的编年体史书"},
-    {t:"陶渊明：中国第一位田园诗人，"古今隐逸诗人之宗""},
-    {t:"郑和下西洋：1405-1433年共七次"},
-    {t:"贞观时期设安西都护府；康雍乾时期设驻藏大臣"},
-    {t:"监国：皇帝外出时由重要人物（通常为太子）留守宫廷代为处理国事。唐高宗时期武则天垂帘听政"},
-    {t:"1912年溥仪逊位后仍居住在紫禁城内"},
-    {t:"方腊起义：宣和二年于安徽歙县，建立6州52县农民政权"},
-    {t:"白鹭洲书院（江西吉安）：南宋江万里创办，与白鹿洞、鹅湖、豫章并称江西四大书院"},
-    {t:"吴门四家：沈周、文徵明、唐寅、仇英"},
-    {t:"沈周：吴门画派开创者，《庐山高图》等；文徵明：《惠山茶会图》等；唐寅：《落霞孤鹜图》等；仇英：《汉宫春晓图》等"},
-    {t:"周昉：唐代画家，《簪花仕女图》《执扇仕女图》《调琴啜茗图》"},
-    {t:"吴道子：唐代画家，《天王送子图》《八十七神仙卷》；顾恺之：东晋画家，《女史箴图》《洛神赋图》"},
-    {t:"王羲之："书圣"，代表作《兰亭序》"},
-    {t:"郑板桥（1693-1765）清代书画家"},
-    {t:"八大山人朱耷：明末清初画家"},
-    {t:""青如天，明如镜，薄如纸，声如磬"形容瓷器"},
-    {t:"春联上联仄声结尾，下联平声结尾"},
-    {t:""笔落惊风雨，诗成泣鬼神"出自杜甫《寄李白二十韵》"},
-    {t:"西柏坡：解放中国最后一个农村指挥所，指挥三大战役，召开七届二中全会"},
-    {t:"汉文帝汉景帝"无为而治"；明仁宗"三杨"辅政（杨士奇、杨荣、杨溥）"},
-    {t:"隋朝确立三省制（尚书、内史、门下），均田令，"大索貌阅"清查户口"},
-    {t:"府兵制始于西魏；会子是纸币的一种"},
-    {t:"中国第一口盐井：李冰主持开凿"},
-    {t:"豪放派词人：苏轼（鼻祖）、辛弃疾、范仲淹、陆游；婉约派：柳永、李清照、秦观、周邦彦"},
-    {t:"花间派鼻祖温庭筠，得名于《花间集》"},
-    {t:""生子当如孙仲谋"指孙权；"司马昭之心，路人皆知"形容其野心"},
-    {t:"茅盾文学奖作品：《平凡的世界》《白鹿原》《人世间》《繁花》《额尔古纳河右岸》等"},
-    {t:"史铁生：《我与地坛》《病隙碎笔》；路遥：《平凡的世界》《人生》；余华：《活着》《许三观卖血记》"},
-    {t:"先锋派代表：马原、余华、苏童、格非、孙甘露、残雪。苏童代表作《妻妾成群》（张艺谋改编为《大红灯笼高高挂》）"},
-    {t:"古希腊三贤：苏格拉底、柏拉图、亚里士多德"},
-    {t:"列夫·托尔斯泰：《战争与和平》《安娜·卡列尼娜》《复活》；海明威：《老人与海》《太阳照常升起》"},
-    {t:"鲁迅：《呐喊》《彷徨》《故事新编》《朝花夕拾》《野草》；莫言：《红高粱家族》《丰乳肥臀》《蛙》"},
-    {t:""公车上书"（1895年）：康有为、梁启超等举人联名上书光绪帝反对签订《马关条约》"},
-    {t:"脸谱：红=忠勇正义（关羽）；白=奸诈多疑（曹操）；黑=刚烈正直（张飞、包拯）；黄=骁勇残暴（典韦）；蓝=刚直桀骜（窦尔敦）"},
-    {t:"青鸟：爱情信使，出自《山海经》；桑梓=故乡，出自《诗经·小雅》；仙鹤=长寿象征"},
-    {t:"杨柳：暗喻离别，"柳"与"留"谐音"},
-    {t:"汉高祖刘邦命萧何在《秦律》基础上增订法律"},
-    {t:"西柏坡（河北石家庄平山县）：解放中国最后一个农村指挥所"},
-    {t:"河南汉字文化：黄帝时代仓颉造字，殷墟甲骨文，李斯"小篆"，许慎《说文解字》，开封活字印刷"},
-  ],
+// ── 数据库：大类 → 小类 → [{t:"内容"}] ──
+const DB = {
+  "政治": {
+    "时政热点": [
+      {t:"构建现代乡村产业体系，做好"土特产"文章，发展乡村种养殖业、加工流通业、休闲旅游业、农村服务业"},
+      {t:"乡村全面振兴三个重点：提升乡村产业发展水平、乡村建设水平、乡村治理水平"},
+      {t:"粮食安全：播种面积稳定在17.5亿亩左右，谷物面积14.5亿亩左右，推动粮食产能稳步登上1.4万亿斤台阶"},
+      {t:"《规划》九大任务：优化城乡发展局、加快现代农业建设、推动乡村产业高质量发展、大力培养农村人才、繁荣乡村文化、深入推进乡村生态文明建设、建设宜居宜业和美乡村、深化农业农村改革、加强农村基层组织建设"},
+      {t:"2035年目标：乡村振兴取得决定性进展，农业现代化基本实现，农村基本具备现代生活条件"},
+      {t:"2024年农村人居环境整治：卫生厕所普及率75%，生活垃圾收运处理行政村比例90%以上，污水治理管控率超45%"},
+      {t:"农村自来水普及率94%"},
+      {t:"扎实推进乡村"五个振兴"：产业振兴、人才振兴、文化振兴、生态振兴、组织振兴"},
+      {t:"底线任务：确保国家粮食安全，确保农村人口不发生规模性返贫"},
+      {t:"新增26个国家物流枢纽（济宁、宿州、阿克苏）"},
+      {t:"国土绿化：2024年完成超1亿亩，森林可持续经营面积扩大到1000万亩以上，草原综合植被盖度稳定在60%以上"},
+      {t:"《古树名木保护条例》2025年3月18日实施"},
+      {t:"2025年1月五部门联合提出20条金融政策措施（允许外资金融机构开展同类新金融服务、20天内审批决定等6方面）"},
+      {t:"2024年全年国家电网投资超过6500亿元"},
+      {t:"我国造船业三大指标：造船完工量、新接订单量、手持订单量，均居世界首位"},
+      {t:"《数字贸易改革发展意见》：创新为要、安全为基、扩大开放合作共赢、深化改革、系统治理、试点先行重点突破"},
+      {t:"《成品油流通高质量发展意见》：地方政府建立跨部门联合监管机制，落实属地监管职责"},
+      {t:"FAST天眼（500米口径球面射电望远镜），世界最大单口径射电望远镜"},
+      {t:""深海一号"累计生产天然气超100亿立方米，凝析油超100万立方米，连续3年天然气产量30亿立方米以上"},
+      {t:"中国"人造太阳"EAST核聚变实验装置（安徽合肥）"},
+      {t:"2024年我国网民规模达11.08亿人，互联网普及率78.6%，稳居全球第一"},
+      {t:"我国每万人口发明专利14件"},
+      {t:"2025年沿海港口航道测绘：66个重点港口，更新海图221幅次，工作总量20.9万测线公里"},
+      {t:"智慧城市数据流程：电子政务网→通办数字化→决策→城市运行中心"},
+      {t:"漯河舰舷号545，新一代护卫舰，排水量5000吨，隐身技术+作战指挥系统突破"},
+      {t:"中兴煤矿公司旧址（枣庄）——中华民族工业第一张股票"},
+      {t:"美丽中国"1+1+N"：1个中央意见+1个先行示范区+N个分领域行动方案"},
+      {t:"2025新春祝福三希望：提高政治站位画好同心圆、紧扣中心工作积极献策出力、加强自身建设提高履职能力"},
+      {t:"《关于深化养老服务改革发展的意见》：加快养老科技和信息化发展，推动人形机器人、脑机接口、AI等技术产品开发"},
+      {t:"《关于推动文化高质量发展的若干经济政策》：打造中国特色、世界一流的图书馆、博物馆、美术馆、科技馆"},
+      {t:"前台综合受理、后台并联审批、统一窗口出件——一站式服务"},
+      {t:"一般方法/规定/办法用"暂行"的原因：填补空白先行先试、试验探索降低风险、细化配套衔接上位法、过渡衔接、快速响应"},
+      {t:"横琴岛位于珠海市香洲西南，面积是澳门的3倍，北回归线以南"},
+      {t:"哈尔滨第九届亚冬会，主题"冰雪盛典，亚洲欢聚"，以绿色、安全、精彩为原则"},
+      {t:"2025年1月19日《教育强国建设规划纲要》：全面把握教育的政治属性、人民属性、战略属性，建设教育强国龙头是高等教育"},
+      {t:"新四军纪念馆（江苏）、平津战役纪念馆（天津）、陕甘边照金纪念馆（陕西）、红军长征湘江战役纪念园（广西）"},
+    ],
+    "中共党史": [
+      {t:"上海共产党小组是中国第一个共产党组织"},
+      {t:"上海机器工会是我党建立的第一个工会组织"},
+      {t:"中共一大（1921.7.23，上海→嘉兴南湖）：中国共产党成立，通过第一个党纲，选举中央领导机构"},
+      {t:"中共二大（1922.7，上海）：第一次明确提出反帝反封建的民主革命纲领，通过第一部党章，提出民主联合战线"},
+      {t:"中共三大（1923.6，广州）：讨论国共合作，决定共产党以个人身份加入国民党，保持政治、思想、组织上的独立性"},
+      {t:"中共四大（1925，上海）：首次明确提出无产阶级在民主革命中的领导权问题、工农联盟思想，总结国共合作经验"},
+      {t:"八七会议（1927.8.7，汉口）：纠正陈独秀右倾机会主义，确定土地革命+武装反抗国民党，毛泽东提出"政权是由枪杆子中取得的""},
+      {t:"古田会议（1929.12，福建上杭）：确立思想建党政治建军原则，规定红军是执行革命政治任务的武装集团，党对军队绝对领导。标志毛泽东思想正式形成"},
+      {t:"瓦窑堡会议（1935，陕北）：解决抗日民族统一战线问题，批判左倾关门主义，为全民族抗战作理论和政治准备"},
+      {t:"洛川会议（1937.8，陕北洛川）：制定全面抗战路线，确立敌后游击战方针，通过《抗日救国十大纲领》"},
+      {t:"中共七大（1945.4，延安杨家岭）：确立毛泽东思想为党的指导思想并写入党章，概括三大作风（理论联系实际、密切联系群众、批评与自我批评），总结三大法宝（武装斗争、统一战线、党的建设）"},
+      {t:"秋收起义（毛泽东）、百色起义（邓小平）、平型关战役（林彪）、淮海战役（粟裕等）"},
+      {t:"蒋介石发动"四一二"反革命政变"},
+      {t:"黄洋界保卫战后毛泽东写《西江月·井冈山》；吴起镇战役后毛泽东写"谁敢横刀立马？唯我彭大将军""},
+      {t:"党的六大提出"党的总路线是争取群众""},
+      {t:"清涧起义是共产党人在西北地区发动的第一次武装起义"},
+      {t:"1941年中共中央正式确定"七一"为党的生日"},
+      {t:"毛泽东诗词时间：1925《沁园春·长沙》、1933《菩萨蛮·大柏地》、1936《沁园春·雪》、1956《水调歌头·游泳》"},
+      {t:"井冈山精神：坚定信念、艰苦奋斗、实事求是、敢闯新路、依靠群众、勇于胜利"},
+      {t:"延安时期领导集体：毛泽东、朱德、刘少奇、周恩来、任弼时"},
+      {t:"《论持久战》（延安）：强调兵民是胜利之本"},
+      {t:"1931年11月中华苏维埃共和国临时中央政府在江西瑞金叶坪村成立"},
+      {t:"中华苏维埃第一次代表大会（瑞金叶坪村）"},
+      {t:"四平收复战首创我军攻占现代化永久筑城地带之先例"},
+      {t:"孟良崮战役（1947.5）：毛泽东指示陈毅、粟裕指挥，对国民党整编第74师作战"},
+      {t:"抗美援朝：长津湖、上甘岭、金城、水门桥战役"},
+      {t:"台儿庄战役是抗日正面战场取得的第一次大捷"},
+      {t:"黄桥战役创造以少胜多的光辉范例"},
+      {t:"平津战役，我党用和平方式解放北平"},
+      {t:"以少胜多的著名战役：巨鹿之战（项羽破釜沉舟）、官渡之战（曹操vs袁绍）、赤壁之战（孙刘vs曹操）、夷陵之战（陆逊vs刘备）、淝水之战（东晋vs前秦）"},
+      {t:"绍兴会馆（北京）——鲁迅在此创作《狂人日记》"},
+      {t:"《解放思想，实事求是，团结一致向前看》是十一届三中全会的主题报告"},
+    ],
+    "政治理论": [
+      {t:"四项基本原则：社会主义道路、马列毛泽东思想、中共领导、人民民主专政"},
+      {t:"科学发展观：第一要义是发展，核心是以人为本，基本要求是全面协调可持续，根本方法是统筹兼顾"},
+      {t:"1992南方谈话三个"有利于"：是否有利于发展社会主义社会的生产力、增强综合国力、提高人民生活水平"},
+      {t:"三个代表创造性回答了"建设什么样的党、怎样建设党"。本质在于执政为民"},
+      {t:"三个代表：中国共产党始终代表中国先进生产力发展要求、中国先进文化的前进方向、中国最广大人民的根本利益"},
+      {t:"邓小平理论：1982十二大提出"建设有中国特色的社会主义"，十六大正式确定为党的指导思想"},
+      {t:"社会公平正义是社会和谐的基本条件"},
+      {t:"构建社会主义和谐社会的重点是解决人民群众最关心、最直接、最现实的利益问题"},
+      {t:"建设和谐文化的根本是社会主义核心价值体系"},
+      {t:"十五大首次提出"两个一百年"奋斗目标"},
+      {t:"社会主义社会发展的直接动力是改革"},
+      {t:"尊重劳动是核心（十六大：尊重劳动、尊重知识、尊重人才、尊重创造）"},
+      {t:"台湾回归祖国后可以有自己的军队"},
+      {t:"1928-1930毛泽东创作《中国的红色政权为什么能够存在》《反对本本主义》《星星之火，可以燎原》标志着毛泽东思想的形成"},
+      {t:"2005年十六届五中全会将社会主义建设任务表述为"四位一体建设"（经济、政治、文化、社会）"},
+      {t:"党的十九大明确提出社会主要矛盾转化为人民日益增长的美好生活需要和不平衡不充分的发展之间的矛盾"},
+      {t:"二十大对国家安全新观点：国家安全是民族复兴的根基，以新安全格局保障新发展格局"},
+      {t:"全面依法治国必须抓住领导干部这个"关键少数""},
+      {t:"全面依法治国的具体要求：坚持党的领导、坚持中国特色社会主义制度、贯彻中国特色社会主义法治理论"},
+      {t:"我党的自我革命实践以自我监督和人民监督相结合为强大动力"},
+    ],
+    "党建纪律": [
+      {t:"政治纪律是党的纪律中最重要最核心的纪律，是党的全部纪律的基础"},
+      {t:"政治纪律中最根本的是坚定捍卫"两个确立"，坚决做到"两个维护""},
+      {t:"廉洁纪律是实现干部清正、政府清廉、政治清明的关键（重要保障）"},
+      {t:"工作纪律的根本要求：履职尽责、担当作为"},
+      {t:"组织纪律包括民主集中制根本制度和"四个服从"基本原则"},
+      {t:"群众纪律是党的性质和宗旨的体现，是我们区别于其他政治组织的显著标志"},
+      {t:"除名是取消党员资格和党籍，是党内一种组织措施，不是纪律处分"},
+      {t:"十一届三中全会形成了以邓小平为核心的党的第二代领导集体"},
+      {t:"十六大正式提出"三个代表"重要思想"},
+      {t:"十八大提出加强党的思想建设、组织建设、作风建设、制度建设、反腐倡廉建设"},
+      {t:"党八大强调发扬民主，鼓励一切党员和组织的积极性和创造性"},
+      {t:"党第十一届五中全会通过《关于党内政治生活的若干准则》"},
+      {t:"十四大修订党章首次规定党员领导干部必须参加党委（党组）的民主生活会"},
+      {t:"《中共中央关于增强党性的决定》提出领导干部必须参加组织生活，听取党员群众批评"},
+      {t:"中央政治局召开会议：全国人大常委会、国务院、全国政协、最高检、最高法"},
+      {t:"常见党中央机构：中共中央（党最高领导机关）、中央政治局常委会（常设最高领导机构）、中央办公厅（综合办事机构）、中组部（主管人才）、中纪委（最高纪检机关）、中宣部（宣传）、中央军委（最高军事机关）、中央统战部（统战）、中联部（对外工作）、中央书记处（办事机构）"},
+      {t:"基层医疗卫生机构是守护人民群众健康的第一道防线"},
+      {t:"企业与产业工人签订书面劳动合同，严格规范劳务派遣用工"},
+    ],
+    "革命人物": [
+      {t:"彭雪枫：大革命时期开始"出生入死，致力革命二十年"的光辉斗争历程"},
+      {t:"马本斋：组织回民抗日义勇队，奋起抵抗日本侵略军"},
+      {t:"黄公略：参加北伐、广州起义，与朱德、彭德怀、毛泽东并称"朱毛彭黄""},
+      {t:"张太雷：中国共产党最早党员之一，组建广州起义指挥机构"},
+      {t:"2025年1月23日：叶光富获二级航天功勋奖章，李聪、李广苏获"英雄航天员"荣誉称号"},
+      {t:"脱贫攻坚精神：上下同心、尽锐出战、精准务实、开拓创新、攻坚克难、不负人民"},
+      {t:"大庆精神、铁人精神：爱国、创业、求实、奉献"},
+      {t:"三牛精神：为民服务孺子牛、创新发展拓荒牛、艰苦奋斗老黄牛"},
+      {t:"五卅运动口号："上海各界同胞一致起来，打倒帝国主义""废除不平等条约""撤退外国驻华军队""收回租界""},
+    ],
+  },
+  "经济": {
+    "宏观经济": [
+      {t:"再分配手段：税收调节、社会保障、财政转移支付、公共服务与福利、价格管制与补贴"},
+      {t:"第三次分配：慈善捐赠、志愿服务、公益金融、社会企业与公益经济、数字公益"},
+    ],
+    "财政税收": [],
+    "金融货币": [],
+    "国际贸易": [],
+  },
+  "法律": {
+    "宪法": [],
+    "民法": [],
+    "刑法": [],
+    "行政法": [],
+  },
+  "历史": {
+    "中国古代史": [],
+    "中国近现代史": [],
+    "世界历史": [],
+  },
+  "人文": {
+    "文学": [
+      {t:"《团结就是力量》牧虹作词、卢肃作曲，创作于1943年6月"},
+      {t:"《松花江上》张寒晖1936年创作于西安二中"},
+      {t:"《大刀进行曲》麦新1937年7月创作，灵感来源于29军"大刀队"喜峰口战斗"},
+      {t:"《打回老家去》九一八事变后创作，反映东北人民对日寇的愤恨"},
+      {t:"李大钊发表《法俄革命之比较观》《庶民的胜利》《布尔什维主义的胜利》《新纪元》热情讴歌十月革命"},
+      {t:""千里莺啼绿映红，水村山郭酒旗风"描写江南春景（杜牧）"},
+      {t:"问鼎中原出自《左传》，对应楚庄王，指图谋夺取政权"},
+      {t:"九死未悔出自屈原《离骚》；约法三章出自《史记·高祖本纪》"},
+      {t:"陶渊明：中国第一位田园诗人，"古今隐逸诗人之宗""},
+      {t:"茅盾文学奖作品：《平凡的世界》《白鹿原》《人世间》《繁花》《额尔古纳河右岸》等"},
+      {t:"史铁生：《我与地坛》《病隙碎笔》；路遥：《平凡的世界》《人生》；余华：《活着》《许三观卖血记》"},
+      {t:"先锋派代表：马原、余华、苏童、格非、孙甘露、残雪。苏童代表作《妻妾成群》（张艺谋改编为《大红灯笼高高挂》）"},
+      {t:"列夫·托尔斯泰：《战争与和平》《安娜·卡列尼娜》《复活》；海明威：《老人与海》《太阳照常升起》"},
+      {t:"鲁迅：《呐喊》《彷徨》《故事新编》《朝花夕拾》《野草》；莫言：《红高粱家族》《丰乳肥臀》《蛙》"},
+      {t:"豪放派词人：苏轼（鼻祖）、辛弃疾、范仲淹、陆游；婉约派：柳永、李清照、秦观、周邦彦"},
+      {t:"花间派鼻祖温庭筠，得名于《花间集》"},
+      {t:""笔落惊风雨，诗成泣鬼神"出自杜甫《寄李白二十韵》"},
+      {t:"黄宗羲：明末清初思想家，"清初三大儒"之一，被誉为"中国思想启蒙之父""},
+    ],
+    "书法绘画": [
+      {t:"吴门四家：沈周、文徵明、唐寅、仇英"},
+      {t:"沈周：吴门画派开创者，《庐山高图》等；文徵明：《惠山茶会图》等；唐寅：《落霞孤鹜图》等；仇英：《汉宫春晓图》等"},
+      {t:"周昉：唐代画家，《簪花仕女图》《执扇仕女图》《调琴啜茗图》"},
+      {t:"吴道子：唐代画家，《天王送子图》《八十七神仙卷》；顾恺之：东晋画家，《女史箴图》《洛神赋图》"},
+      {t:"王羲之："书圣"，代表作《兰亭序》"},
+      {t:"郑板桥（1693-1765）清代书画家"},
+      {t:"八大山人朱耷：明末清初画家"},
+    ],
+    "戏曲艺术": [
+      {t:"昆曲起源于元朝昆山地区，明朝嘉靖年间魏良辅改革"},
+      {t:"脸谱：红=忠勇正义（关羽）；白=奸诈多疑（曹操）；黑=刚烈正直（张飞、包拯）；黄=骁勇残暴（典韦）；蓝=刚直桀骜（窦尔敦）"},
+    ],
+    "民俗文化": [
+      {t:"春联上联仄声结尾，下联平声结尾"},
+      {t:"青鸟：爱情信使，出自《山海经》；桑梓=故乡，出自《诗经·小雅》；仙鹤=长寿象征"},
+      {t:"杨柳：暗喻离别，"柳"与"留"谐音"},
+      {t:""青如天，明如镜，薄如纸，声如磬"形容瓷器"},
+    ],
+  },
+  "科技": {
+    "航天科技": [],
+    "信息技术": [],
+    "生物医学": [],
+    "物理化学": [],
+    "前沿科技": [],
+  },
+  "地理": {
+    "自然地理": [
+      {t:"五岳：东岳泰山（山东泰安）、西岳华山（陕西华阴）、南岳衡山（湖南衡阳）、北岳恒山（山西大同浑源）、中岳嵩山（河南登封）"},
+    ],
+    "中国地理": [
+      {t:"四大书院：应天府书院（河南商丘）、岳麓书院（湖南长沙）、白鹿洞书院（江西九江庐山）、嵩阳书院（河南登封）"},
+      {t:"西柏坡（河北石家庄平山县）：解放中国最后一个农村指挥所"},
+    ],
+    "世界地理": [],
+  },
+  "申论热点": {
+    "乡村振兴": [],
+    "科技创新": [],
+    "生态文明": [],
+    "社会治理": [],
+    "民生保障": [],
+    "文化建设": [],
+  },
 };
 
-let activeCat="时政热点";
-let isSearchAll=false;
+// 类别颜色映射
+const CAT_COLORS = {"政治":"#e74c3c","经济":"#f39c12","法律":"#9b59b6","历史":"#2ecc71","人文":"#1abc9c","科技":"#3498db","地理":"#e67e22","申论":"#e91e63"};
+const CAT_ICONS = {"政治":"🏛️","经济":"💰","法律":"⚖️","历史":"📜","人文":"🎨","科技":"🔬","地理":"🌏","申论":"📝"};
+
+let currentCat = null; // null = 首页
+let currentSub = null;
+let isSearchMode = false;
 
 // 计算总数
-function getTotal(){
-  return Object.values(DB).reduce((s,a)=>s+a.length,0);
-}
-
-// 渲染标签页
-function renderTabs(){
-  const cats=Object.keys(DB);
-  const total=getTotal();
-  document.getElementById("tabs").innerHTML=
-    `<div class="tab ${isSearchAll?'active':''}" onclick="isSearchAll=true;renderTabs();render()">全部(${total})</div>`+
-    cats.map(c=>
-      `<div class="tab ${!isSearchAll&&c===activeCat?'active':''}" onclick="isSearchAll=false;activeCat='${c}';renderTabs();render()">${c}(${DB[c].length})</div>`
-    ).join('');
-}
-
-// 渲染内容
-function render(){
-  const q=(document.getElementById("searchInput").value||"").trim().toLowerCase();
-  document.getElementById("statsTotal").textContent=getTotal();
-
-  let cats=isSearchAll?Object.keys(DB):[activeCat];
-  let html="";
-
-  for(const cat of cats){
-    const items=DB[cat]||[];
-    let filtered=items;
-    if(q){
-      filtered=items.filter(it=>it.t.toLowerCase().includes(q));
+function getTotal() {
+  let total = 0;
+  for (const cat of Object.keys(DB)) {
+    for (const sub of Object.keys(DB[cat])) {
+      total += DB[cat][sub].length;
     }
-    if(filtered.length===0) continue;
+  }
+  return total;
+}
 
-    document.getElementById("statsFilter").textContent=q?`找到 ${filtered.length} 条`:'';
+function getCatTotal(cat) {
+  let total = 0;
+  for (const sub of Object.keys(DB[cat] || {})) {
+    total += DB[cat][sub].length;
+  }
+  return total;
+}
 
-    html+=`<div class="section"><div class="section-title">📖 ${cat}</div>`;
-    for(let i=0;i<filtered.length;i++){
-      let text=filtered[i].t;
-      if(q){
-        const re=new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi');
-        text=text.replace(re,'<mark>$1</mark>');
+function getSubTotal(cat, sub) {
+  return (DB[cat] && DB[cat][sub]) ? DB[cat][sub].length : 0;
+}
+
+// 首页视图
+function goHome() {
+  currentCat = null;
+  currentSub = null;
+  isSearchMode = false;
+  document.getElementById('searchInput').value = '';
+  document.getElementById('pageTitle').textContent = '📚 考公知识速记';
+  document.getElementById('fabBtn').style.display = 'none';
+  renderHome();
+}
+
+function renderHome() {
+  const cats = Object.keys(DB);
+  document.getElementById('statsFilter').textContent = '';
+  document.getElementById('navArea').innerHTML = '';
+  
+  let html = '<div class="home-grid">';
+  for (const cat of cats) {
+    const total = getCatTotal(cat);
+    const color = CAT_COLORS[cat] || '#4a6cf7';
+    const icon = CAT_ICONS[cat] || '📌';
+    html += `<div class="home-card" onclick="openCat('${cat}')">
+      <div class="home-card-icon">${icon}</div>
+      <div class="home-card-name">${cat}</div>
+      <div class="home-card-count">${total} 条</div>
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+// 打开大类
+function openCat(cat) {
+  currentCat = cat;
+  currentSub = null;
+  isSearchMode = false;
+  document.getElementById('searchInput').value = '';
+  document.getElementById('statsFilter').textContent = '';
+  document.getElementById('pageTitle').textContent = `${CAT_ICONS[cat] || ''} ${cat}`;
+  document.getElementById('fabBtn').style.display = 'flex';
+  
+  const subs = Object.keys(DB[cat]);
+  if (subs.length === 0) {
+    document.getElementById('navArea').innerHTML = `<div class="breadcrumb"><span onclick="goHome()" style="cursor:pointer">首页</span> › <span class="bc-active">${cat}</span></div>`;
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>暂无数据，待补充</div>';
+    return;
+  }
+  
+  renderCatView(cat);
+}
+
+function renderCatView(cat) {
+  const subs = Object.keys(DB[cat]);
+  const total = getCatTotal(cat);
+  const color = CAT_COLORS[cat] || '#4a6cf7';
+  
+  document.getElementById('navArea').innerHTML = `
+    <div class="breadcrumb"><span onclick="goHome()" style="cursor:pointer">首页</span> › <span class="bc-active">${cat}</span></div>
+    <div class="sub-tabs">
+      ${subs.map(s => {
+        const cnt = getSubTotal(cat, s);
+        const isActive = (!currentSub && s === subs[0]) || currentSub === s;
+        return `<div class="sub-tab ${isActive ? 'active' : ''}" onclick="selectSub('${cat}','${s}')">${s}(${cnt})</div>`;
+      }).join('')}
+    </div>`;
+  
+  // If no specific sub selected, show first one
+  if (!currentSub || !DB[cat][currentSub]) {
+    currentSub = subs[0];
+  }
+  renderSubContent(cat, currentSub);
+}
+
+function selectSub(cat, sub) {
+  currentSub = sub;
+  // Update tab active state
+  const tabs = document.querySelectorAll('.sub-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderSubContent(cat, sub);
+}
+
+function renderSubContent(cat, sub) {
+  const items = DB[cat][sub] || [];
+  if (items.length === 0) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>该分类暂无数据，待补充</div>';
+    return;
+  }
+  
+  let html = `<div class="section"><div class="section-title" style="border-color:${CAT_COLORS[cat]}">📖 ${sub} <span class="section-count">${items.length}条</span></div>`;
+  for (let i = 0; i < items.length; i++) {
+    html += `<div class="item" data-cat="${cat}"><span class="item-num">${i+1}.</span>${items[i].t}</div>`;
+  }
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+// 搜索功能
+function onSearch() {
+  const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+  
+  if (!q) {
+    if (currentCat) {
+      openCat(currentCat);
+    } else {
+      goHome();
+    }
+    return;
+  }
+  
+  isSearchMode = true;
+  document.getElementById('statsFilter').textContent = '';
+  document.getElementById('navArea').innerHTML = '';
+  document.getElementById('pageTitle').textContent = '🔍 搜索结果';
+  
+  let totalMatches = 0;
+  let html = '';
+  
+  const cats = Object.keys(DB);
+  for (const cat of cats) {
+    const subs = Object.keys(DB[cat]);
+    for (const sub of subs) {
+      const items = DB[cat][sub].filter(it => it.t.toLowerCase().includes(q));
+      if (items.length === 0) continue;
+      totalMatches += items.length;
+      
+      html += `<div class="section"><div class="section-title" style="border-color:${CAT_COLORS[cat]}">${CAT_ICONS[cat]} ${cat} › ${sub} <span class="section-count">匹配${items.length}条</span></div>`;
+      for (let i = 0; i < items.length; i++) {
+        let text = items[i].t;
+        const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+        text = text.replace(re, '<mark>$1</mark>');
+        html += `<div class="item" data-cat="${cat}"><span class="item-num">${i+1}.</span>${text}</div>`;
       }
-      html+=`<div class="item"><span class="item-num">${i+1}.</span>${text}</div>`;
+      html += '</div>';
     }
-    html+=`</div>`;
   }
-
-  if(!html){
-    html=`<div class="empty"><div class="empty-icon">🔍</div>没有匹配的知识点</div>`;
+  
+  if (!html) {
+    html = '<div class="empty"><div class="empty-icon">🔍</div>没有匹配的知识点</div>';
   }
-
-  document.getElementById("content").innerHTML=html;
+  
+  document.getElementById('statsFilter').textContent = `找到 ${totalMatches} 条`;
+  document.getElementById('content').innerHTML = html;
 }
 
 // 暗色模式
-function initTheme(){
-  const d=localStorage.getItem('theme');
-  if(d==='dark'||(!d&&window.matchMedia('(prefers-color-scheme:dark)').matches)){
+function initTheme() {
+  const d = localStorage.getItem('theme');
+  if (d === 'dark' || (!d && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
     document.documentElement.classList.add('dark');
-    document.getElementById("themeBtn").textContent='☀️';
+    document.getElementById('themeBtn').textContent = '☀️';
   }
 }
-function toggleTheme(){
+function toggleTheme() {
   document.documentElement.classList.toggle('dark');
-  const isDark=document.documentElement.classList.contains('dark');
-  document.getElementById("themeBtn").textContent=isDark?'☀️':'🌙';
-  localStorage.setItem('theme',isDark?'dark':'light');
+  const isDark = document.documentElement.classList.contains('dark');
+  document.getElementById('themeBtn').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }
 
 // 初始化
+document.getElementById('statsTotal').textContent = getTotal();
 initTheme();
-renderTabs();
-render();
+goHome();
 </script>
 </body>
 </html>
