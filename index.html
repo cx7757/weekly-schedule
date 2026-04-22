@@ -640,11 +640,9 @@ function getTomorrowKey(){
   const todayIdx=DAY_KEYS.indexOf(todayDayKey());
   return todayIdx<6?DAY_KEYS[todayIdx+1]:null; // 周日无"明天"在本周
 }
-function propagateToTomorrow(dayKey, newTask, oldTask){
+function propagateToTomorrow(dayKey, newTask, oldTask, mode){
   propagated=false;
   if(dayKey!==todayDayKey())return; // 只处理今天的任务
-  if(newTask.done)return; // 已完成的不管
-  if(!oldTask && newTask.done===false)return; // 新添加的且未完成，不自动延续
   const tmrKey=getTomorrowKey();
   if(!tmrKey)return; // 今天是周日则不延续
   // 确定明天在哪个weekOffset
@@ -652,6 +650,17 @@ function propagateToTomorrow(dayKey, newTask, oldTask){
   let tmrOffset=weekOffset;
   if(todayIdx>=6) tmrOffset=weekOffset+1; // 周六往明天=下周
   const tmrTasks=getTasksOf(tmrOffset,tmrKey);
+
+  if(mode==='delete'){
+    // 删除模式：删除明天的同名任务
+    const existIdx=tmrTasks.findIndex(t=>t.name===oldTask.name);
+    if(existIdx>=0){tmrTasks.splice(existIdx,1);propagated=true;}
+    return;
+  }
+
+  // 编辑模式
+  if(newTask.done)return; // 已完成的不管
+  if(!oldTask && newTask.done===false)return; // 新添加的且未完成，不自动延续
   // 在明天的任务中查找同名任务
   const existIdx=tmrTasks.findIndex(t=>t.name===oldTask.name);
   if(existIdx>=0){
@@ -1049,8 +1058,12 @@ function saveEdit(){
 }
 function deleteTask(){
   if(!confirm("确定删除这个任务吗？"))return;
-  getTasksOf(weekOffset,editKey).splice(editIdx,1);
-  save();render();closeModal();showToast("🗑️ 已删除");
+  const ts=getTasksOf(weekOffset,editKey);
+  const removed=ts[editIdx];
+  ts.splice(editIdx,1);
+  // 日程延续：如果删除的是今天的任务，明天也同步删除
+  propagateToTomorrow(editKey, null, removed, 'delete');
+  save();render();closeModal();showToast("🗑️ 已删除"+(propagated?"（已同步删除明天的）":""));
 }
 
 // ── Matrix Edit ──
