@@ -315,6 +315,32 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .notes-item mark{background:#ffe066;color:#000;padding:1px 2px;border-radius:3px}
 .notes-home-btn{position:fixed;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;border:none;font-size:22px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:100;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff}
 
+/* ── 添加知识点 ── */
+.add-notes-fab{position:fixed;bottom:20px;right:80px;width:48px;height:48px;border-radius:50%;border:none;font-size:22px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:100;display:none;align-items:center;justify-content:center;background:var(--success);color:#fff;transition:transform .15s}
+.add-notes-fab:active{transform:scale(.9)}
+.add-note-modal{display:none}
+.add-note-modal.open{display:flex}
+.add-note-modal .modal{max-height:85vh;overflow-y:auto;max-width:380px}
+.add-note-img-wrap{width:100%;border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;margin-bottom:12px;position:relative;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color .2s}
+.add-note-img-wrap:active{border-color:var(--accent)}
+.add-note-img-wrap.has-img{border-style:solid;padding:8px}
+.add-note-img-wrap .anw-placeholder{font-size:32px;margin-bottom:6px;opacity:.5}
+.add-note-img-wrap .anw-text{font-size:12px;color:var(--sub)}
+.add-note-img-wrap img{max-width:100%;max-height:200px;border-radius:8px;object-fit:contain}
+.add-note-img-wrap .anw-del{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.add-note-textarea{width:100%;min-height:80px;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;outline:none;color:var(--text);background:var(--card);margin-bottom:10px;resize:vertical;font-family:inherit;line-height:1.6}
+.add-note-textarea:focus{border-color:var(--accent)}
+.add-note-cat-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);background:var(--card);margin-bottom:8px;font-family:inherit}
+.add-note-cat-select:focus{border-color:var(--accent)}
+.notes-custom-badge{font-size:10px;background:var(--success);color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle}
+.notes-update-hint{font-size:10px;margin-top:4px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notes-update-hint.urgent{color:var(--danger);font-weight:600}
+.notes-update-hint.warn{color:#e67e22;font-weight:500}
+.notes-update-hint.ok{color:var(--success)}
+.notes-item .ni-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+.notes-item .ni-del-btn{font-size:11px;color:var(--danger);cursor:pointer;background:none;border:none;padding:2px 8px;border-radius:6px}
+.notes-item .ni-del-btn:active{opacity:.6}
+
 </style>
 </head>
 <body>
@@ -374,6 +400,28 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 <div id="notesView" style="display:none">
   <div class="notes-body" id="notesContent"></div>
   <button class="notes-home-btn" onclick="goHome()" title="Home" style="display:none" id="notesHomeBtn">🏠</button>
+  <button class="add-notes-fab" onclick="openAddNote()" title="添加知识点">📷</button>
+</div>
+
+<!-- Notes Add Modal -->
+<div class="modal-mask add-note-modal" id="addNoteModal" onclick="if(event.target===this)closeAddNote()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>📷 添加知识点</h3>
+    <div class="add-note-img-wrap" id="addNoteImgWrap" onclick="triggerNotePhoto()">
+      <span class="anw-placeholder">📷</span>
+      <span class="anw-text">点击拍照或选择图片</span>
+    </div>
+    <input type="file" id="addNoteFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleNotePhoto(event)">
+    <textarea class="add-note-textarea" id="addNoteText" placeholder="粘贴或输入知识点内容..."></textarea>
+    <div class="form-label">分类</div>
+    <select class="add-note-cat-select" id="addNoteCat" onchange="onAddNoteCatChange()"></select>
+    <div class="form-label" style="margin-top:6px">子分类</div>
+    <select class="add-note-cat-select" id="addNoteSub"></select>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeAddNote()">取消</button>
+      <button class="modal-btn confirm" onclick="saveCustomNote()">✅ 保存</button>
+    </div>
+  </div>
 </div>
 
 <!-- Edit Modal -->
@@ -585,6 +633,36 @@ const DEFAULT={
 let weekOffset=0, currentDay="mon", dbData={}, addFormOpen={}, addTagSel={}, addPrioSel={}, addEisenSel={};
 let editKey=null, editIdx=null;
 let timerState={running:false, taskKey:null, taskIdx:null, startTime:null, elapsed:0, interval:null};
+
+// ── 日程延续 ──
+let propagated=false;
+function getTomorrowKey(){
+  const todayIdx=DAY_KEYS.indexOf(todayDayKey());
+  return todayIdx<6?DAY_KEYS[todayIdx+1]:null; // 周日无"明天"在本周
+}
+function propagateToTomorrow(dayKey, newTask, oldTask){
+  propagated=false;
+  if(dayKey!==todayDayKey())return; // 只处理今天的任务
+  if(newTask.done)return; // 已完成的不管
+  if(!oldTask && newTask.done===false)return; // 新添加的且未完成，不自动延续
+  const tmrKey=getTomorrowKey();
+  if(!tmrKey)return; // 今天是周日则不延续
+  // 确定明天在哪个weekOffset
+  const todayIdx=DAY_KEYS.indexOf(todayDayKey());
+  let tmrOffset=weekOffset;
+  if(todayIdx>=6) tmrOffset=weekOffset+1; // 周六往明天=下周
+  const tmrTasks=getTasksOf(tmrOffset,tmrKey);
+  // 在明天的任务中查找同名任务
+  const existIdx=tmrTasks.findIndex(t=>t.name===oldTask.name);
+  if(existIdx>=0){
+    // 同名任务存在，同步更新（保留明天的完成状态）
+    tmrTasks[existIdx]={...tmrTasks[existIdx],name:newTask.name,time:newTask.time,tag:newTask.tag,prio:newTask.prio,eisen:newTask.eisen};
+  } else {
+    // 明天没有同名任务，复制过去（重置完成状态）
+    tmrTasks.push({...newTask,done:false});
+  }
+  propagated=true;
+}
 
 // ── Storage ──
 function load(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)dbData=JSON.parse(s);}catch(e){}}
@@ -963,8 +1041,11 @@ function saveEdit(){
   let eisen="nimp-nurg";
   if(selEisen){EISEN.forEach(e=>{if(selEisen.classList.contains(e.cls))eisen=e.val;});}
   const ts=getTasksOf(weekOffset,editKey);
-  ts[editIdx]={...ts[editIdx],name,time,tag,prio,eisen};
-  save();render();closeModal();showToast("✏️ 已保存");
+  const oldTask=ts[editIdx];
+  ts[editIdx]={...oldTask,name,time,tag,prio,eisen};
+  // 日程延续：如果编辑的是今天且任务未完成，自动同步到明天
+  propagateToTomorrow(editKey, ts[editIdx], oldTask);
+  save();render();closeModal();showToast("✏️ 已保存"+(propagated?"（已延续到明天）":""));
 }
 function deleteTask(){
   if(!confirm("确定删除这个任务吗？"))return;
@@ -1340,6 +1421,7 @@ function openNotes(){
   document.getElementById('dayTabs').style.display='none';
   document.getElementById('mainArea').style.display='none';
   document.getElementById('timerBar').style.display='none';
+  document.querySelector('.add-notes-fab').style.display='flex';
   notesCat=null;notesSub=null;notesSearchMode=false;
   renderNotesHome();
 }
@@ -1351,56 +1433,81 @@ function closeNotes(){
   document.getElementById('mainArea').style.display='';
   var tb=document.getElementById('timerBar');
   if(tb.classList.contains('active'))tb.style.display='block';
+  document.querySelector('.add-notes-fab').style.display='none';
 }
 function goHome(){notesCat=null;notesSub=null;notesSearchMode=false;renderNotesHome();}
 function renderNotesHome(){
   var el=document.getElementById('notesContent');
-  var total=notesGetTotal();
-  var cats=Object.keys(NOTES_DB);
+  var merged=getMergedNotes();
+  var cats=Object.keys(merged);
+  var total=0;cats.forEach(c=>{total+=Object.values(merged[c]).reduce((s,arr)=>s+arr.length,0);});
   el.innerHTML='<div class="notes-home"><h2>📚 考公资料库</h2><div class="notes-stats">共 '+total+' 条知识点 · '+cats.length+' 大分类</div><input class="notes-search" id="notesSearchInput" placeholder="🔍 搜索知识点..." oninput="onNotesSearch()"><div class="notes-search-results" id="notesSearchResults"></div><div class="notes-grid" id="notesGrid"></div></div>';
   document.getElementById('notesHomeBtn').style.display='none';
   var grid=document.getElementById('notesGrid');
   grid.innerHTML=cats.map(function(c){
-    var cnt=notesGetCatTotal(c);var icon=NOTES_ICONS[c]||'📖';var color=NOTES_COLORS[c]||'#6c63ff';
-    return '<div class="notes-card" onclick="openNotesCat(\''+c+'\')" style="border-left:3px solid '+color+'"><div class="nc-icon">'+icon+'</div><div class="nc-name">'+c+'</div><div class="nc-count">'+cnt+' 条</div></div>';
+    var cnt=Object.values(merged[c]).reduce((s,arr)=>s+arr.length,0);
+    var customCnt=notesGetCustomTotal(c);
+    var icon=NOTES_ICONS[c]||'📖';var color=NOTES_COLORS[c]||'#6c63ff';
+    var badge=customCnt>0?'<span class="notes-custom-badge">+'+customCnt+'</span>':'';
+    var hint=notesUpdateHint(c);
+    var hintHtml='<div class="notes-update-hint '+hint.cls+'">'+hint.text+'</div>';
+    return '<div class="notes-card" onclick="openNotesCat(\''+c+'\')" style="border-left:3px solid '+color+'"><div class="nc-icon">'+icon+'</div><div class="nc-name">'+c+badge+'</div><div class="nc-count">'+cnt+' 条</div>'+hintHtml+'</div>';
   }).join('');
 }
 function openNotesCat(c){
   notesCat=c;notesSub=null;notesSearchMode=false;
   var el=document.getElementById('notesContent');
-  var total=notesGetCatTotal(c);var subs=Object.keys(NOTES_DB[c]);
+  var merged=getMergedNotes();
+  var total=Object.values(merged[c]||{}).reduce((s,arr)=>s+arr.length,0);
+  var subs=Object.keys(merged[c]||{});
   var icon=NOTES_ICONS[c]||'📖';var color=NOTES_COLORS[c]||'#6c63ff';
   el.innerHTML='<div class="notes-home"><div class="notes-back-row"><button class="notes-back-btn" onclick="goHome()">← 返回首页</button></div><div class="notes-cat-header" style="border-color:'+color+'"><span class="nch-icon">'+icon+'</span><span class="nch-name">'+c+'</span><span class="nch-count">('+total+'条)</span></div><input class="notes-search" id="notesSearchInput" placeholder="🔍 在'+c+'中搜索..." oninput="onNotesSearch()"><div class="notes-search-results" id="notesSearchResults"></div><div class="notes-sub-grid" id="notesSubGrid"></div></div>';
   document.getElementById('notesHomeBtn').style.display='flex';
   var grid=document.getElementById('notesSubGrid');
   grid.innerHTML=subs.map(function(s){
-    var cnt=notesGetSubTotal(c,s);
-    return '<div class="notes-sub-card" onclick="openNotesSub(\''+c+'\',\''+s+'\')" style="border-left:3px solid '+color+'"><div class="nsc-name">'+s+'</div><div class="nsc-count">'+cnt+' 条</div></div>';
+    var cnt=(merged[c][s]||[]).length;
+    var customCnt=notesGetCustomSubTotal(c,s);
+    var badge=customCnt>0?' <span class="notes-custom-badge">+'+customCnt+'</span>':'';
+    return '<div class="notes-sub-card" onclick="openNotesSub(\''+c+'\',\''+s+'\')" style="border-left:3px solid '+color+'"><div class="nsc-name">'+s+badge+'</div><div class="nsc-count">'+cnt+' 条</div></div>';
   }).join('');
 }
 function openNotesSub(c,s){
   notesCat=c;notesSub=s;notesSearchMode=false;
   var el=document.getElementById('notesContent');
-  var items=NOTES_DB[c][s];var icon=NOTES_ICONS[c]||'📖';var color=NOTES_COLORS[c]||'#6c63ff';
+  var merged=getMergedNotes();
+  var items=merged[c][s]||[];
+  var custom=loadCustomNotes();
+  var customItems=custom[c]&&custom[c][s]?custom[c][s]:[];
+  var icon=NOTES_ICONS[c]||'📖';var color=NOTES_COLORS[c]||'#6c63ff';
   el.innerHTML='<div class="notes-home"><div class="notes-back-row"><button class="notes-back-btn" onclick="openNotesCat(\''+c+'\')">← 返回'+c+'</button></div><div class="notes-cat-header" style="border-color:'+color+'"><span class="nch-icon">'+icon+'</span><span class="nch-name">'+s+'</span><span class="nch-count">('+items.length+'条)</span></div><div class="notes-items" id="notesItemsList"></div></div>';
   document.getElementById('notesHomeBtn').style.display='flex';
   var list=document.getElementById('notesItemsList');
+  var customIdx=0;
   list.innerHTML=items.map(function(item){
-    return '<div class="notes-item" style="border-left-color:'+color+'">'+item.t+'</div>';
+    var html='<div class="notes-item" style="border-left-color:'+color+'">';
+    if(item.img){html+='<img src="'+item.img+'" style="max-width:100%;border-radius:6px;margin-bottom:6px" onclick="window.open(this.src)">';}
+    html+=item.t;
+    if(item.custom){
+      html+='<div class="ni-actions"><button class="ni-del-btn" onclick="deleteCustomNote(\''+c+'\',\''+s+'\','+customIdx+')">🗑️ 删除</button></div>';
+    }
+    html+='</div>';
+    if(item.custom)customIdx++;
+    return html;
   }).join('');
 }
 function onNotesSearch(){
   var q=document.getElementById('notesSearchInput').value.trim().toLowerCase();
   var resEl=document.getElementById('notesSearchResults');
   if(!q){resEl.style.display='none';resEl.classList.remove('active');return;}
+  var merged=getMergedNotes();
   var results=[];
-  var cats=notesCat?[notesCat]:Object.keys(NOTES_DB);
+  var cats=notesCat?[notesCat]:Object.keys(merged);
   cats.forEach(function(c){
-    var subs=notesSub?[notesSub]:Object.keys(NOTES_DB[c]);
+    var subs=notesSub?[notesSub]:Object.keys(merged[c]||{});
     subs.forEach(function(s){
-      if(!NOTES_DB[c][s])return;
-      NOTES_DB[c][s].forEach(function(item,idx){
-        if(item.t.toLowerCase().indexOf(q)>=0){results.push({c:c,s:s,i:idx,t:item.t});}
+      if(!merged[c][s])return;
+      merged[c][s].forEach(function(item,idx){
+        if(item.t.toLowerCase().indexOf(q)>=0){results.push({c:c,s:s,i:idx,t:item.t,custom:item.custom||false});}
       });
     });
   });
@@ -1415,6 +1522,124 @@ function onNotesSearch(){
     var highlighted=r.t.replace(re,'<mark>$1</mark>');
     return '<div class="notes-item" style="border-left-color:'+color+'"><span style="font-size:11px;color:var(--sub)">['+r.c+' · '+r.s+']</span><br>'+highlighted+'</div>';
   }).join('');
+}
+
+// ── 自定义知识点管理 ──
+const CUSTOM_NOTES_KEY='schedule_custom_notes';
+function loadCustomNotes(){try{const s=localStorage.getItem(CUSTOM_NOTES_KEY);return s?JSON.parse(s):{};}catch(e){return {};}}
+function saveCustomNotes(data){localStorage.setItem(CUSTOM_NOTES_KEY,JSON.stringify(data));}
+// 知识点最后更新时间
+const NOTES_LAST_UPDATE_KEY='schedule_notes_last_update';
+function loadNotesLastUpdate(){try{const s=localStorage.getItem(NOTES_LAST_UPDATE_KEY);return s?JSON.parse(s):{};}catch(e){return {};}}
+function saveNotesLastUpdate(data){localStorage.setItem(NOTES_LAST_UPDATE_KEY,JSON.stringify(data));}
+function touchNotesUpdate(cat){const d=loadNotesLastUpdate();d[cat]=Date.now();saveNotesLastUpdate(d);}
+function notesUpdateHint(cat){
+  const d=loadNotesLastUpdate();const ts=d[cat];
+  if(!ts)return{text:'暂未添加自定义内容',cls:'urgent'};
+  const days=Math.floor((Date.now()-ts)/86400000);
+  if(days===0)return{text:'今天更新过 ✓',cls:'ok'};
+  if(days<=3)return{text:days+'天前更新',cls:'ok'};
+  if(days<=7)return{text:days+'天前更新',cls:'warn'};
+  return{text:days+'天前更新 · 建议更新',cls:'urgent'};
+}
+function getMergedNotes(){
+  // 合并硬编码NOTES_DB和用户自定义数据
+  const custom=loadCustomNotes();
+  const merged=JSON.parse(JSON.stringify(NOTES_DB));
+  Object.keys(custom).forEach(c=>{
+    if(!merged[c])merged[c]={};
+    Object.keys(custom[c]).forEach(s=>{
+      if(!merged[c][s])merged[c][s]=[];
+      custom[c][s].forEach(item=>{
+        merged[c][s].push({t:item.t,custom:true,img:item.img||null});
+      });
+    });
+  });
+  return merged;
+}
+function notesGetCustomTotal(cat){
+  const custom=loadCustomNotes();let n=0;
+  if(custom[cat])Object.values(custom[cat]).forEach(arr=>n+=arr.length);
+  return n;
+}
+function notesGetCustomSubTotal(cat,sub){
+  const custom=loadCustomNotes();
+  return(custom[cat]&&custom[cat][sub])?custom[cat][sub].length:0;
+}
+
+// 打开添加知识点模态框
+function openAddNote(){
+  document.getElementById('addNoteModal').classList.add('open');
+  // 重置表单
+  document.getElementById('addNoteText').value='';
+  resetNotePhoto();
+  // 填充分类下拉
+  const catSel=document.getElementById('addNoteCat');
+  catSel.innerHTML=Object.keys(NOTES_DB).map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+  onAddNoteCatChange();
+}
+function closeAddNote(){document.getElementById('addNoteModal').classList.remove('open');}
+
+function onAddNoteCatChange(){
+  const cat=document.getElementById('addNoteCat').value;
+  const subSel=document.getElementById('addNoteSub');
+  subSel.innerHTML=Object.keys(NOTES_DB[cat]||{}).map(s=>'<option value="'+s+'">'+s+'</option>').join('');
+}
+
+// 拍照/选择图片
+function triggerNotePhoto(){document.getElementById('addNoteFileInput').click();}
+function handleNotePhoto(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const wrap=document.getElementById('addNoteImgWrap');
+    wrap.classList.add('has-img');
+    wrap.innerHTML='<img src="'+ev.target.result+'" id="addNoteImgPreview"><button class="anw-del" onclick="event.stopPropagation();resetNotePhoto()">✕</button>';
+  };
+  reader.readAsDataURL(file);
+}
+function resetNotePhoto(){
+  const wrap=document.getElementById('addNoteImgWrap');
+  wrap.classList.remove('has-img');
+  wrap.innerHTML='<span class="anw-placeholder">📷</span><span class="anw-text">点击拍照或选择图片</span>';
+  document.getElementById('addNoteFileInput').value='';
+}
+
+// 保存自定义知识点
+function saveCustomNote(){
+  const text=document.getElementById('addNoteText').value.trim();
+  if(!text){showToast("请输入知识点内容");return;}
+  const cat=document.getElementById('addNoteCat').value;
+  const sub=document.getElementById('addNoteSub').value;
+  const imgEl=document.getElementById('addNoteImgPreview');
+  const img=imgEl?imgEl.src:null;
+  const custom=loadCustomNotes();
+  if(!custom[cat])custom[cat]={};
+  if(!custom[cat][sub])custom[cat][sub]=[];
+  custom[cat][sub].push({t:text,img:img});
+  saveCustomNotes(custom);
+  touchNotesUpdate(cat);
+  closeAddNote();
+  showToast("✅ 知识点已添加");
+  // 刷新当前视图
+  if(notesSub)openNotesSub(notesCat,notesSub);
+  else if(notesCat)openNotesCat(notesCat);
+  else renderNotesHome();
+}
+
+// 删除自定义知识点
+function deleteCustomNote(cat,sub,idx){
+  if(!confirm("确定删除这条知识点吗？"))return;
+  const custom=loadCustomNotes();
+  if(custom[cat]&&custom[cat][sub]){
+    custom[cat][sub].splice(idx,1);
+    if(custom[cat][sub].length===0)delete custom[cat][sub];
+    if(Object.keys(custom[cat]).length===0)delete custom[cat];
+    saveCustomNotes(custom);
+  }
+  showToast("🗑️ 已删除");
+  openNotesSub(cat,sub);
 }
 
 // ── Init ──
