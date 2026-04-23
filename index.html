@@ -1056,9 +1056,10 @@ function autoSyncFromYesterday(){
   const todayNames=new Set(tTasks.map(t=>t.name));
 
   // 把昨天有但今天没有的任务补充进来（重置完成状态）
+  // 跳过课堂类任务（课程有固定日期，不应跨天同步）
   let added=0;
   yTasks.forEach(task=>{
-    if(!todayNames.has(task.name)){
+    if(!todayNames.has(task.name) && task.tag!=='课堂'){
       tTasks.push({...task,done:false});
       todayNames.add(task.name);
       added++;
@@ -1076,8 +1077,11 @@ function autoSyncFromYesterday(){
 
 function propagateToTomorrow(dayKey, newTask, oldTask, mode){
   // 保留手动编辑时的实时同步（用于同一天内的即时反馈）
+  // 课堂类任务不跨天同步（课程有固定日期）
   propagated=false;
   if(dayKey!==todayDayKey())return;
+  const isClassTask=(newTask&&newTask.tag==='课堂')||(oldTask&&oldTask.tag==='课堂');
+  if(isClassTask)return;
   const tmrKey=getTomorrowKey();
   if(!tmrKey)return;
   const todayIdx=DAY_KEYS.indexOf(todayDayKey());
