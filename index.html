@@ -192,6 +192,18 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .modal-btn.cancel{background:var(--bg);color:var(--sub);}
 .modal-btn.confirm{background:var(--accent);color:#fff;}
 .modal-btn.danger{background:#ff7675;color:#fff;}
+.changelog-modal .modal{max-width:400px;text-align:center;padding:24px 20px}
+.changelog-modal .cm-icon{font-size:48px;margin-bottom:8px}
+.changelog-modal .cm-version{font-size:13px;color:var(--sub);margin-bottom:14px}
+.changelog-modal .cm-title{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--fg)}
+.changelog-modal .cm-list{text-align:left;margin:0 0 16px;padding:0}
+.changelog-modal .cm-item{position:relative;padding:8px 0 8px 20px;font-size:13px;color:var(--fg);line-height:1.5}
+.changelog-modal .cm-item::before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.changelog-modal .cm-history{margin-top:12px;border-top:1px solid var(--border);padding-top:12px}
+.changelog-modal .cm-history-title{font-size:12px;color:var(--sub);margin-bottom:8px}
+.changelog-modal .cm-h-item{font-size:11px;color:var(--sub);padding:3px 0;display:flex;justify-content:space-between}
+.changelog-modal .cm-btn{width:100%;padding:12px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;margin-top:4px}
+.changelog-modal .cm-btn:active{opacity:.8}
 
 /* ── Summary Panel ── */
 .summary-panel{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow);}
@@ -404,6 +416,19 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 </div>
 
 <!-- Notes Add Modal -->
+<!-- Changelog Modal -->
+<div class="modal-mask changelog-modal" id="changelogModal" onclick="if(event.target===this)closeChangelog()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="cm-icon">🎉</div>
+    <div class="cm-version" id="cmVersion"></div>
+    <div class="cm-title" id="cmTitle"></div>
+    <ul class="cm-list" id="cmList"></ul>
+    <div class="cm-history" id="cmHistory"></div>
+    <button class="cm-btn" onclick="closeChangelog()">知道了</button>
+  </div>
+</div>
+
+<!-- Add Note Modal -->
 <div class="modal-mask add-note-modal" id="addNoteModal" onclick="if(event.target===this)closeAddNote()">
   <div class="modal" onclick="event.stopPropagation()">
     <h3>📷 添加知识点</h3>
@@ -528,6 +553,16 @@ const DAYS=["周一","周二","周三","周四","周五","周六","周日"];
 const DAY_KEYS=["mon","tue","wed","thu","fri","sat","sun"];
 const TAGS=["课堂","健身","学习","训练","休息","晚间","其他"];
 const STORAGE_KEY="schedule_v3";
+const APP_VERSION="1.8.0";
+const VERSION_KEY="schedule_app_version";
+const CHANGELOG=[
+  {v:"1.8.0",date:"2026-04-23",title:"自动日程同步 + 更新公告",
+   items:["每天首次打开自动从昨天同步日程，无需手动操作","删除今天的任务，明天自动同步删除","新增更新公告弹窗，版本更新时自动提示"]},
+  {v:"1.7.0",date:"2026-04-22",title:"知识库拍照录入 + 更新提醒",
+   items:["知识库支持拍照/选图添加自定义知识点","分类卡片显示上次更新时间，超期红色提醒","日程编辑时自动延续到第二天"]},
+  {v:"1.6.0",date:"2026-04-12",title:"考公资料库集成",
+   items:["内置八大分类417条考公知识点","支持搜索高亮、暗色模式","支持星级优先级、艾森豪威尔矩阵"]}
+];
 const PRIOS=[
   {val:3,label:"⭐⭐⭐ 最重要",cls:"p3",stars:"⭐⭐⭐"},
   {val:2,label:"⭐⭐ 重要",cls:"p2",stars:"⭐⭐"},
@@ -633,6 +668,28 @@ const DEFAULT={
 let weekOffset=0, currentDay="mon", dbData={}, addFormOpen={}, addTagSel={}, addPrioSel={}, addEisenSel={};
 let editKey=null, editIdx=null;
 let timerState={running:false, taskKey:null, taskIdx:null, startTime:null, elapsed:0, interval:null};
+
+// ── 更新公告 ──
+function checkVersionUpdate(){
+  const lastVer=localStorage.getItem(VERSION_KEY);
+  if(lastVer===APP_VERSION)return; // 版本相同，不弹
+  showChangelog();
+  localStorage.setItem(VERSION_KEY,APP_VERSION);
+}
+function showChangelog(){
+  const log=CHANGELOG[0];
+  if(!log)return;
+  document.getElementById('cmVersion').textContent='v'+log.v+' · '+log.date;
+  document.getElementById('cmTitle').textContent=log.title;
+  document.getElementById('cmList').innerHTML=log.items.map(i=>'<li class="cm-item">'+i+'</li>').join('');
+  // 历史版本
+  const histEl=document.getElementById('cmHistory');
+  if(CHANGELOG.length>1){
+    histEl.innerHTML='<div class="cm-history-title">历史更新</div>'+CHANGELOG.slice(1).map(c=>'<div class="cm-h-item"><span>v'+c.v+'</span><span>'+c.title+'</span></div>').join('');
+  }else{histEl.innerHTML='';}
+  document.getElementById('changelogModal').classList.add('open');
+}
+function closeChangelog(){document.getElementById('changelogModal').classList.remove('open');}
 
 // ── 日程自动延续（每天首次打开自动同步） ──
 const AUTO_SYNC_KEY='schedule_last_auto_sync';
@@ -1702,7 +1759,7 @@ function deleteCustomNote(cat,sub,idx){
 }
 
 // ── Init ──
-load();autoSyncFromYesterday();initTheme();calcInitWeek();currentDay=todayDayKey();render();initPWA();
+load();autoSyncFromYesterday();initTheme();calcInitWeek();currentDay=todayDayKey();render();checkVersionUpdate();initPWA();
 </script>
 </body>
 </html>
