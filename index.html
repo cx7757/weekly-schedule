@@ -2209,14 +2209,15 @@ function finRenderBook(){
   var ms=finOverviewMs||finMonthStr();
   var el=document.getElementById('finTabContent');
   var h='<div class="fin-card"><div class="fin-card-title">⚡ 快捷记账</div><div class="fin-quick-btns">';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',35)"><span>🍚</span><span class="fq-label">午饭</span></button>';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',35)"><span>🍜</span><span class="fq-label">晚饭</span></button>';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',15)"><span>🥞</span><span class="fq-label">早饭</span></button>';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',0)"><span>🍽️</span><span class="fq-label">外出</span></button>';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'daily\',35)"><span>💄</span><span class="fq-label">唇膏</span></button>';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'health\',35)"><span>💊</span><span class="fq-label">药费</span></button>';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'daily\',100)"><span>📱</span><span class="fq-label">话费</span></button>';
-  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'shop\',0)"><span>🛒</span><span class="fq-label">淘宝</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'午饭\')"><span>🍚</span><span class="fq-label">午饭</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'晚饭\')"><span>🍜</span><span class="fq-label">晚饭</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'早饭\')"><span>🥞</span><span class="fq-label">早饭</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'外出\')"><span>🍽️</span><span class="fq-label">外出</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'daily\',\'唇膏\')"><span>💄</span><span class="fq-label">唇膏</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'health\',\'药费\')"><span>💊</span><span class="fq-label">药费</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'daily\',50,\'话费\')"><span>📱</span><span class="fq-label">话费</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'shop\',\'淘宝\')"><span>🛒</span><span class="fq-label">淘宝</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'奶茶咖啡\')"><span>☕</span><span class="fq-label">奶茶咖啡</span></button>';
   h+='</div></div>';
   h+='<div class="fin-card"><div class="fin-card-title">✏️ 自定义记账</div><div class="fin-add-form">';
   h+='<select id="finAddCat"><option value="food">🍚 饭钱</option><option value="shop">🛒 购物</option><option value="daily">🧴 日用品</option><option value="transport">🚌 交通</option><option value="ent">🎮 娱乐</option><option value="health">💊 医疗</option><option value="other">📦 其他</option></select>';
@@ -2287,9 +2288,16 @@ function finSaveSettingsForm(){
   finSaveSettings();showToast('✅ 设置已保存');finRender();
 }
 
-function finQuickAdd(cat,amount){
-  if(amount===0){finSwitchTab(1);setTimeout(function(){var inp=document.getElementById('finAddAmount');if(inp)inp.focus();},100);return;}
-  finAddRecord(cat,amount,FIN_CATS[cat].name);
+function finQuickAdd(cat,arg2,arg3){
+  if(typeof arg2==='number'){
+    finAddRecord(cat,arg2,arg3||'');
+  } else {
+    var amt=prompt(arg2+' - 输入金额（元）：');
+    if(amt===null||amt==='')return;
+    var num=parseFloat(amt);
+    if(!num||num<=0){showToast('⚠️ 请输入有效金额');return;}
+    finAddRecord(cat,num,arg2);
+  }
 }
 function finAddExpense(){
   var cat=document.getElementById('finAddCat').value;
