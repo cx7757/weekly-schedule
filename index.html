@@ -65,15 +65,15 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .progress-fill{height:100%;background:linear-gradient(90deg,#6c63ff,#a29bfe);border-radius:10px;transition:width .4s ease;}
 
 /* ── 本周考公模块 ── */
-.study-focus-bar{background:linear-gradient(135deg,#e84393,#ff7675,#fdcb6e);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .2s;}
+.study-focus-bar{background:var(--card);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .2s;border-bottom:1px solid var(--border);}
 .study-focus-bar:active{opacity:.85;}
-.study-focus-left{display:flex;align-items:center;gap:8px;}
-.study-focus-icon{font-size:18px;line-height:1;}
+.study-focus-left{display:flex;align-items:center;gap:10px;}
+.study-focus-icon{font-size:20px;line-height:1;}
 .study-focus-meta{display:flex;flex-direction:column;}
-.study-focus-label{font-size:10px;color:rgba(255,255,255,.85);font-weight:500;letter-spacing:.5px;}
-.study-focus-content{font-size:15px;font-weight:700;color:#fff;margin-top:1px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.study-focus-content.empty{font-style:italic;opacity:.75;font-size:13px;}
-.study-focus-edit{color:rgba(255,255,255,.8);font-size:18px;}
+.study-focus-label{font-size:11px;color:var(--sub);font-weight:600;letter-spacing:.5px;}
+.study-focus-content{font-size:16px;font-weight:800;color:var(--text);margin-top:2px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.study-focus-content.empty{font-weight:500;opacity:.5;font-size:14px;}
+.study-focus-edit{color:var(--sub);font-size:18px;}
 
 /* 编辑模态框复用 modal 样式，无需额外 */
 
@@ -651,12 +651,12 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
     <input id="studyFocusInput" type="text" maxlength="30"
       placeholder="输入本周重点学习模块..."
       style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--bg);color:var(--text);outline:none;margin-bottom:8px;"
-      oninput="this.style.borderColor=this.value?'#e84393':'var(--border)'"
+      oninput="this.style.borderColor=this.value?'var(--accent)':'var(--border)'"
     >
     <div id="studyFocusPresets" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
     <div style="display:flex;gap:10px;">
       <button onclick="closeStudyFocusEdit()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--sub);font-size:14px;cursor:pointer;">取消</button>
-      <button onclick="saveStudyFocus()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#e84393,#ff7675);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✅ 确认</button>
+      <button onclick="saveStudyFocus()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✅ 确认</button>
     </div>
   </div>
 </div>
@@ -973,10 +973,10 @@ function openStudyFocusEdit(){
   const modal=document.getElementById('studyFocusModal');
   const input=document.getElementById('studyFocusInput');
   input.value=loadStudyFocus();
-  input.style.borderColor=input.value?'#e84393':'var(--border)';
+  input.style.borderColor=input.value?'var(--accent)':'var(--border)';
   // 渲染预设标签
   const presetsEl=document.getElementById('studyFocusPresets');
-  presetsEl.innerHTML=STUDY_FOCUS_PRESETS.map(p=>`<span onclick="document.getElementById('studyFocusInput').value='${p}';document.getElementById('studyFocusInput').style.borderColor='#e84393';" style="padding:4px 10px;border-radius:20px;background:var(--border);font-size:12px;color:var(--text);cursor:pointer;transition:background .2s;">${p}</span>`).join('');
+  presetsEl.innerHTML=STUDY_FOCUS_PRESETS.map(p=>`<span onclick="document.getElementById('studyFocusInput').value='${p}';document.getElementById('studyFocusInput').style.borderColor='var(--accent)';" style="padding:4px 10px;border-radius:20px;background:var(--border);font-size:12px;color:var(--text);cursor:pointer;transition:background .2s;">${p}</span>`).join('');
   modal.classList.add('open');
   setTimeout(()=>input.focus(),150);
 }
