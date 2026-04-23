@@ -342,7 +342,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .notes-home-btn{position:fixed;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;border:none;font-size:22px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:100;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff}
 
 /* ── 添加知识点 ── */
-.add-notes-fab{position:fixed;bottom:20px;right:80px;width:48px;height:48px;border-radius:50%;border:none;font-size:22px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:100;display:none;align-items:center;justify-content:center;background:var(--success);color:#fff;transition:transform .15s}
+.add-notes-fab{position:fixed;bottom:20px;left:20px;width:48px;height:48px;border-radius:50%;border:none;font-size:22px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:100;display:none;align-items:center;justify-content:center;background:var(--success);color:#fff;transition:transform .15s}
 .add-notes-fab:active{transform:scale(.9)}
 .add-note-modal{display:none}
 .add-note-modal.open{display:flex}
@@ -1861,6 +1861,7 @@ function openNotes(){
   document.getElementById('dayTabs').style.display='none';
   document.getElementById('mainArea').style.display='none';
   document.getElementById('timerBar').style.display='none';
+  document.querySelector('.fab-group').style.display='none';
   document.querySelector('.add-notes-fab').style.display='flex';
   notesCat=null;notesSub=null;notesSearchMode=false;
   renderNotesHome();
@@ -1874,6 +1875,7 @@ function closeNotes(){
   document.getElementById('mainArea').style.display='';
   var tb=document.getElementById('timerBar');
   if(tb.classList.contains('active'))tb.style.display='block';
+  document.querySelector('.fab-group').style.display='';
   document.querySelector('.add-notes-fab').style.display='none';
 }
 function goHome(){notesCat=null;notesSub=null;notesSearchMode=false;renderNotesHome();}
