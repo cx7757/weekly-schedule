@@ -1,6 +1,6 @@
 // ── Service Worker for 我的周计划 PWA ──
 // !! 每次发布新版本必须更新这个版本号，否则手机会一直用旧缓存 !!
-const CACHE_NAME = 'schedule-pwa-v1.9.0';
+const CACHE_NAME = 'schedule-pwa-v2.0.0';
 const ASSETS = [
   './',
   './index.html',
