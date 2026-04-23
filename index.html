@@ -366,6 +366,30 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .notes-item .ni-del-btn{font-size:11px;color:var(--danger);cursor:pointer;background:none;border:none;padding:2px 8px;border-radius:6px}
 .notes-item .ni-del-btn:active{opacity:.6}
 
+/* ── 读书感悟 ── */
+.refl-view{font-family:inherit;background:var(--bg);color:var(--text);min-height:100vh;padding:16px}
+.refl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.refl-header h2{font-size:18px}
+.refl-add-btn{background:linear-gradient(135deg,#6c63ff,#a29bfe);border:none;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+.refl-add-btn:active{opacity:.8}
+.refl-list{display:flex;flex-direction:column;gap:12px;max-width:500px;margin:0 auto}
+.refl-card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);position:relative}
+.refl-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.refl-book{font-size:16px;font-weight:700;color:var(--accent);flex:1}
+.refl-actions{display:flex;gap:4px;flex-shrink:0}
+.refl-act{background:var(--bg);border:none;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--sub)}
+.refl-act:active{opacity:.6}
+.refl-act.del:active{color:var(--danger)}
+.refl-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--sub);margin-bottom:8px}
+.refl-meta span{display:flex;align-items:center;gap:3px}
+.refl-content{font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.refl-content.empty{color:var(--sub);font-style:italic}
+.refl-search{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;background:var(--bg);color:var(--text);outline:none;margin-bottom:14px;max-width:500px}
+.refl-search:focus{border-color:var(--accent)}
+.refl-empty{text-align:center;padding:40px 20px;color:var(--sub)}
+.refl-empty .refl-empty-icon{font-size:48px;margin-bottom:12px}
+.refl-stats{text-align:center;font-size:12px;color:var(--sub);margin-bottom:14px}
+
 /* ── AI 助手 ── */
 .ai-fab{position:fixed;bottom:20px;right:70px;width:48px;height:48px;border-radius:50%;border:none;font-size:22px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:150;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#00b894,#00cec9);color:#fff;transition:transform .15s}
 .ai-fab:active{transform:scale(.9)}
@@ -413,6 +437,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
       <div class="today-badge" id="todayBadge"></div>
       <div class="header-btns">
         <button class="header-btn" onclick="openNotes()" title="考公资料" style="font-size:16px">📚</button>
+        <button class="header-btn" onclick="openReflections()" title="读书感悟" style="font-size:16px">📖</button>
         <button class="header-btn" onclick="toggleTheme()" title="切换主题">🌙</button>
         <button class="header-btn" onclick="openSummary()" title="周总结">📊</button>
         <button class="header-btn" onclick="openMonthly()" title="月度总结">📅</button>
@@ -467,6 +492,51 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
   </div>
 </div>
 
+
+<!-- Reflections View -->
+<div id="reflView" style="display:none">
+  <div class="refl-view" id="reflContent"></div>
+</div>
+
+<!-- Reflection Edit Modal -->
+<div class="modal-mask" id="reflModal" onclick="if(event.target===this)closeReflEdit()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
+    <h3 id="reflModalTitle">📖 写读后感</h3>
+    <div class="form-label">书名</div>
+    <input class="form-input" id="reflBookInput" placeholder="《书名》" style="width:100%;margin-bottom:8px">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <div style="flex:1">
+        <div class="form-label">标签</div>
+        <select class="form-input" id="reflTagInput" style="width:100%;padding:8px">
+          <option value="个人成长">🌱 个人成长</option>
+          <option value="财富认知">💰 财富认知</option>
+          <option value="思维模式">🧠 思维模式</option>
+          <option value="历史">📜 历史</option>
+          <option value="小说">📚 小说</option>
+          <option value="心理学">💭 心理学</option>
+          <option value="专业">🎓 专业</option>
+          <option value="其他">📦 其他</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <div class="form-label">评分</div>
+        <select class="form-input" id="reflRatingInput" style="width:100%;padding:8px">
+          <option value="5">⭐⭐⭐⭐⭐</option>
+          <option value="4">⭐⭐⭐⭐</option>
+          <option value="3" selected>⭐⭐⭐</option>
+          <option value="2">⭐⭐</option>
+          <option value="1">⭐</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-label">读后感</div>
+    <textarea class="add-note-textarea" id="reflContentInput" placeholder="写下你的感悟、收获、摘抄..." style="min-height:160px"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeReflEdit()">取消</button>
+      <button class="modal-btn confirm" onclick="saveReflection()">💾 保存</button>
+    </div>
+  </div>
+</div>
 
 <!-- Notes View -->
 <div id="notesView" style="display:none">
@@ -645,9 +715,11 @@ const DAYS=["周一","周二","周三","周四","周五","周六","周日"];
 const DAY_KEYS=["mon","tue","wed","thu","fri","sat","sun"];
 const TAGS=["课堂","健身","学习","训练","休息","晚间","其他"];
 const STORAGE_KEY="schedule_v3";
-const APP_VERSION="2.0.0";
+const APP_VERSION="2.1.0";
 const VERSION_KEY="schedule_app_version";
 const CHANGELOG=[
+  {v:"2.1.0",date:"2026-04-23",title:"读书感悟模块",
+   items:["新增读书感悟子页面（header📖按钮进入）","支持写读后感：书名、标签、评分、内容","8个标签分类：个人成长/财富认知/思维模式/历史/小说/心理学/专业/其他","支持搜索书名和内容","支持编辑和删除已有感悟"]},
   {v:"2.0.0",date:"2026-04-23",title:"AI 智能助手",
    items:["新增 AI 助手浮动按钮，点击打开对话面板","接入腾讯混元 Lite（完全免费），支持自然语言交互","可让 AI 帮你添加任务、整理待办、生成周总结","API Key 保存在本地，安全可控"]},
   {v:"1.9.0",date:"2026-04-23",title:"本周考公模块 Banner",
@@ -1924,6 +1996,147 @@ function deleteCustomNote(cat,sub,idx){
   }
   showToast("🗑️ 已删除");
   openNotesSub(cat,sub);
+}
+
+// ── 读书感悟 ──
+const REFL_KEY='schedule_reflections';
+let reflEditId=null;
+
+function loadReflections(){try{return JSON.parse(localStorage.getItem(REFL_KEY))||[];}catch(e){return[];}}
+function saveReflectionsData(data){localStorage.setItem(REFL_KEY,JSON.stringify(data));}
+
+function openReflections(){
+  document.getElementById('reflView').style.display='block';
+  document.querySelector('.header').style.display='none';
+  document.querySelector('.progress-wrap').style.display='none';
+  document.getElementById('studyFocusBar').style.display='none';
+  document.getElementById('dayTabs').style.display='none';
+  document.getElementById('mainArea').style.display='none';
+  document.getElementById('timerBar').style.display='none';
+  renderReflections();
+}
+function closeReflections(){
+  document.getElementById('reflView').style.display='none';
+  document.querySelector('.header').style.display='';
+  document.querySelector('.progress-wrap').style.display='';
+  document.getElementById('studyFocusBar').style.display='';
+  document.getElementById('dayTabs').style.display='';
+  document.getElementById('mainArea').style.display='';
+  var tb=document.getElementById('timerBar');
+  if(tb.classList.contains('active'))tb.style.display='block';
+}
+
+function renderReflections(filter){
+  var data=loadReflections();
+  var el=document.getElementById('reflContent');
+  var totalBooks=new Set(data.map(function(r){return r.book;})).size;
+
+  var html='<div class="refl-header"><h2>📖 读书感悟</h2><button class="refl-add-btn" onclick="openReflEdit()">✏️ 写感悟</button></div>';
+  html+='<input class="refl-search" id="reflSearch" placeholder="🔍 搜索书名或内容..." oninput="onReflSearch()">';
+  html+='<div class="refl-stats">共 '+data.length+' 篇感悟 · '+totalBooks+' 本书</div>';
+  html+='<div class="refl-list" id="reflList">';
+
+  if(filter){
+    data=data.filter(function(r){
+      return r.book.toLowerCase().indexOf(filter)>=0||r.content.toLowerCase().indexOf(filter)>=0;
+    });
+  }
+
+  if(data.length===0){
+    html+='<div class="refl-empty"><div class="refl-empty-icon">📚</div><div>'+(filter?'未找到匹配内容':'还没有读后感<br>点击右上角开始写第一篇吧～')+'</div></div>';
+  }else{
+    // Sort by date desc
+    data.sort(function(a,b){return b.id-a.id;});
+    data.forEach(function(r){
+      var stars='';
+      for(var i=0;i<5;i++)stars+=i<r.rating?'⭐':'☆';
+      var contentDisplay=r.content?r.content:'<span class="empty">暂无内容</span>';
+      html+='<div class="refl-card">';
+      html+='<div class="refl-card-top"><div class="refl-book">《'+escHtml(r.book)+'》</div>';
+      html+='<div class="refl-actions"><button class="refl-act" onclick="editReflection('+r.id+')" title="编辑">✏️</button>';
+      html+='<button class="refl-act del" onclick="deleteReflection('+r.id+')" title="删除">🗑️</button></div></div>';
+      html+='<div class="refl-meta"><span>'+stars+'</span><span>🏷️ '+escHtml(r.tag)+'</span><span>📅 '+r.date+'</span></div>';
+      html+='<div class="refl-content">'+contentDisplay+'</div>';
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+  // Back button
+  html+='<div style="max-width:500px;margin:20px auto 0;text-align:center"><button class="refl-add-btn" onclick="closeReflections()" style="background:var(--border);color:var(--text)">← 返回周计划</button></div>';
+  el.innerHTML=html;
+}
+
+function onReflSearch(){
+  var q=document.getElementById('reflSearch').value.trim().toLowerCase();
+  renderReflections(q||null);
+  // Restore search value after re-render
+  if(q){var inp=document.getElementById('reflSearch');if(inp)inp.value=q;}
+}
+
+function openReflEdit(id){
+  reflEditId=id||null;
+  var modal=document.getElementById('reflModal');
+  document.getElementById('reflModalTitle').textContent=id?'✏️ 编辑读后感':'📖 写读后感';
+
+  if(id){
+    var data=loadReflections();
+    var r=data.find(function(x){return x.id===id;});
+    if(r){
+      document.getElementById('reflBookInput').value=r.book;
+      document.getElementById('reflTagInput').value=r.tag;
+      document.getElementById('reflRatingInput').value=r.rating;
+      document.getElementById('reflContentInput').value=r.content||'';
+    }
+  }else{
+    document.getElementById('reflBookInput').value='';
+    document.getElementById('reflTagInput').value='个人成长';
+    document.getElementById('reflRatingInput').value='3';
+    document.getElementById('reflContentInput').value='';
+  }
+  modal.classList.add('open');
+  setTimeout(function(){document.getElementById('reflBookInput').focus();},100);
+}
+
+function closeReflEdit(){
+  document.getElementById('reflModal').classList.remove('open');
+  reflEditId=null;
+}
+
+function saveReflection(){
+  var book=document.getElementById('reflBookInput').value.trim();
+  if(!book){showToast('⚠️ 请输入书名');return;}
+  var tag=document.getElementById('reflTagInput').value;
+  var rating=parseInt(document.getElementById('reflRatingInput').value);
+  var content=document.getElementById('reflContentInput').value.trim();
+  var data=loadReflections();
+
+  if(reflEditId){
+    var idx=data.findIndex(function(x){return x.id===reflEditId;});
+    if(idx>=0){
+      data[idx].book=book;
+      data[idx].tag=tag;
+      data[idx].rating=rating;
+      data[idx].content=content;
+      data[idx].date=new Date().toISOString().slice(0,10);
+    }
+    showToast('✅ 已更新');
+  }else{
+    data.push({id:Date.now(),book:book,tag:tag,rating:rating,content:content,date:new Date().toISOString().slice(0,10)});
+    showToast('✅ 感悟已保存');
+  }
+  saveReflectionsData(data);
+  closeReflEdit();
+  renderReflections();
+}
+
+function editReflection(id){openReflEdit(id);}
+
+function deleteReflection(id){
+  if(!confirm('确定删除这篇读后感吗？'))return;
+  var data=loadReflections().filter(function(x){return x.id!==id;});
+  saveReflectionsData(data);
+  showToast('🗑️ 已删除');
+  renderReflections();
 }
 
 // ── AI 助手 ──
