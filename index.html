@@ -64,6 +64,19 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .progress-track{height:6px;background:var(--border);border-radius:10px;overflow:hidden;}
 .progress-fill{height:100%;background:linear-gradient(90deg,#6c63ff,#a29bfe);border-radius:10px;transition:width .4s ease;}
 
+/* ── 本周考公模块 ── */
+.study-focus-bar{background:linear-gradient(135deg,#e84393,#ff7675,#fdcb6e);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity .2s;}
+.study-focus-bar:active{opacity:.85;}
+.study-focus-left{display:flex;align-items:center;gap:8px;}
+.study-focus-icon{font-size:18px;line-height:1;}
+.study-focus-meta{display:flex;flex-direction:column;}
+.study-focus-label{font-size:10px;color:rgba(255,255,255,.85);font-weight:500;letter-spacing:.5px;}
+.study-focus-content{font-size:15px;font-weight:700;color:#fff;margin-top:1px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.study-focus-content.empty{font-style:italic;opacity:.75;font-size:13px;}
+.study-focus-edit{color:rgba(255,255,255,.8);font-size:18px;}
+
+/* 编辑模态框复用 modal 样式，无需额外 */
+
 /* ── Day tabs ── */
 .day-tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:90px;z-index:99;}
 .day-tabs::-webkit-scrollbar{display:none;}
@@ -391,6 +404,18 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
   <div class="progress-track"><div class="progress-fill" id="weekBar" style="width:0%"></div></div>
 </div>
 
+<!-- 本周考公模块 -->
+<div class="study-focus-bar" id="studyFocusBar" onclick="openStudyFocusEdit()">
+  <div class="study-focus-left">
+    <div class="study-focus-icon">🎯</div>
+    <div class="study-focus-meta">
+      <span class="study-focus-label">本周考公模块</span>
+      <span class="study-focus-content" id="studyFocusText">点击设置本周学习目标...</span>
+    </div>
+  </div>
+  <span class="study-focus-edit">✏️</span>
+</div>
+
 <!-- Day tabs -->
 <div class="day-tabs" id="dayTabs"></div>
 
@@ -425,6 +450,24 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
     <ul class="cm-list" id="cmList"></ul>
     <div class="cm-history" id="cmHistory"></div>
     <button class="cm-btn" onclick="closeChangelog()">知道了</button>
+  </div>
+</div>
+
+<!-- 本周考公模块 编辑弹窗 -->
+<div class="modal-mask" id="studyFocusModal" onclick="if(event.target===this)closeStudyFocusEdit()">
+  <div class="modal" onclick="event.stopPropagation()" style="padding:24px 20px;">
+    <h3 style="margin-bottom:12px;font-size:16px;">🎯 设置本周考公模块</h3>
+    <p style="font-size:12px;color:var(--sub);margin-bottom:14px;line-height:1.6;">例如：行测-数量关系、申论-归纳概括、法律-宪法等</p>
+    <input id="studyFocusInput" type="text" maxlength="30"
+      placeholder="输入本周重点学习模块..."
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--bg);color:var(--text);outline:none;margin-bottom:8px;"
+      oninput="this.style.borderColor=this.value?'#e84393':'var(--border)'"
+    >
+    <div id="studyFocusPresets" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeStudyFocusEdit()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--sub);font-size:14px;cursor:pointer;">取消</button>
+      <button onclick="saveStudyFocus()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#e84393,#ff7675);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✅ 确认</button>
+    </div>
   </div>
 </div>
 
@@ -553,9 +596,11 @@ const DAYS=["周一","周二","周三","周四","周五","周六","周日"];
 const DAY_KEYS=["mon","tue","wed","thu","fri","sat","sun"];
 const TAGS=["课堂","健身","学习","训练","休息","晚间","其他"];
 const STORAGE_KEY="schedule_v3";
-const APP_VERSION="1.8.0";
+const APP_VERSION="1.9.0";
 const VERSION_KEY="schedule_app_version";
 const CHANGELOG=[
+  {v:"1.9.0",date:"2026-04-23",title:"本周考公模块 Banner",
+   items:["进度条下方新增「本周考公模块」醒目横幅","点击可设置本周重点学习模块（行测/申论/法律等）","内置常用模块快捷预设，一键选中","数据本地保存，下周自动提醒更新"]},
   {v:"1.8.0",date:"2026-04-23",title:"自动日程同步 + 更新公告",
    items:["每天首次打开自动从昨天同步日程，无需手动操作","删除今天的任务，明天自动同步删除","新增更新公告弹窗，版本更新时自动提示"]},
   {v:"1.7.0",date:"2026-04-22",title:"知识库拍照录入 + 更新提醒",
@@ -668,6 +713,76 @@ const DEFAULT={
 let weekOffset=0, currentDay="mon", dbData={}, addFormOpen={}, addTagSel={}, addPrioSel={}, addEisenSel={};
 let editKey=null, editIdx=null;
 let timerState={running:false, taskKey:null, taskIdx:null, startTime:null, elapsed:0, interval:null};
+
+// ── 本周考公模块 ──
+const STUDY_FOCUS_KEY='schedule_study_focus';
+const STUDY_FOCUS_WEEK_KEY='schedule_study_focus_week';
+const STUDY_FOCUS_PRESETS=[
+  '行测-数量关系','行测-判断推理','行测-言语理解','行测-资料分析','行测-常识判断',
+  '申论-归纳概括','申论-综合分析','申论-提出对策','申论-贯彻执行','申论-文章写作',
+  '法律-宪法','法律-行政法','法律-民法','法律-刑法',
+  '经济-宏观经济','历史-近代史','政治-习近平新时代'
+];
+
+function getWeekId(){
+  // 以周一为起点计算周ID（ISO week）
+  const now=new Date();
+  const d=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()));
+  const day=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-day);
+  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return d.getUTCFullYear()+'W'+Math.ceil((((d-yearStart)/86400000)+1)/7);
+}
+
+function loadStudyFocus(){
+  return localStorage.getItem(STUDY_FOCUS_KEY)||'';
+}
+
+function renderStudyFocusBar(){
+  const txt=loadStudyFocus();
+  const el=document.getElementById('studyFocusText');
+  if(!el)return;
+  if(txt){
+    el.textContent=txt;
+    el.classList.remove('empty');
+  }else{
+    el.textContent='点击设置本周考公模块...';
+    el.classList.add('empty');
+  }
+  // 周一首次检测：若本周未设置则提示
+  const wid=getWeekId();
+  const lastWid=localStorage.getItem(STUDY_FOCUS_WEEK_KEY);
+  const now=new Date();
+  if(now.getDay()===1 && lastWid!==wid && !txt){
+    // 新的一周且没有设置，轻微提示
+    document.getElementById('studyFocusBar').style.animation='pulse-hint 1s ease 2';
+  }
+}
+
+function openStudyFocusEdit(){
+  const modal=document.getElementById('studyFocusModal');
+  const input=document.getElementById('studyFocusInput');
+  input.value=loadStudyFocus();
+  input.style.borderColor=input.value?'#e84393':'var(--border)';
+  // 渲染预设标签
+  const presetsEl=document.getElementById('studyFocusPresets');
+  presetsEl.innerHTML=STUDY_FOCUS_PRESETS.map(p=>`<span onclick="document.getElementById('studyFocusInput').value='${p}';document.getElementById('studyFocusInput').style.borderColor='#e84393';" style="padding:4px 10px;border-radius:20px;background:var(--border);font-size:12px;color:var(--text);cursor:pointer;transition:background .2s;">${p}</span>`).join('');
+  modal.classList.add('open');
+  setTimeout(()=>input.focus(),150);
+}
+
+function closeStudyFocusEdit(){
+  document.getElementById('studyFocusModal').classList.remove('open');
+}
+
+function saveStudyFocus(){
+  const val=document.getElementById('studyFocusInput').value.trim();
+  localStorage.setItem(STUDY_FOCUS_KEY,val);
+  localStorage.setItem(STUDY_FOCUS_WEEK_KEY,getWeekId());
+  closeStudyFocusEdit();
+  renderStudyFocusBar();
+  showToast(val?'🎯 本周考公模块已设置：'+val:'已清空本周模块');
+}
 
 // ── 更新公告 ──
 function checkVersionUpdate(){
@@ -1534,6 +1649,7 @@ function openNotes(){
   document.getElementById('notesView').style.display='block';
   document.querySelector('.header').style.display='none';
   document.querySelector('.progress-wrap').style.display='none';
+  document.getElementById('studyFocusBar').style.display='none';
   document.getElementById('dayTabs').style.display='none';
   document.getElementById('mainArea').style.display='none';
   document.getElementById('timerBar').style.display='none';
@@ -1545,6 +1661,7 @@ function closeNotes(){
   document.getElementById('notesView').style.display='none';
   document.querySelector('.header').style.display='';
   document.querySelector('.progress-wrap').style.display='';
+  document.getElementById('studyFocusBar').style.display='';
   document.getElementById('dayTabs').style.display='';
   document.getElementById('mainArea').style.display='';
   var tb=document.getElementById('timerBar');
@@ -1759,7 +1876,7 @@ function deleteCustomNote(cat,sub,idx){
 }
 
 // ── Init ──
-load();autoSyncFromYesterday();initTheme();calcInitWeek();currentDay=todayDayKey();render();checkVersionUpdate();initPWA();
+load();autoSyncFromYesterday();initTheme();calcInitWeek();currentDay=todayDayKey();render();renderStudyFocusBar();checkVersionUpdate();initPWA();
 </script>
 </body>
 </html>
