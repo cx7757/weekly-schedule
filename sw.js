@@ -1,7 +1,9 @@
 // ── Service Worker for 我的周计划 PWA ──
-const CACHE_NAME = 'schedule-pwa-v1';
+// !! 每次发布新版本必须更新这个版本号，否则手机会一直用旧缓存 !!
+const CACHE_NAME = 'schedule-pwa-v1.8.0';
 const ASSETS = [
-  './schedule_app.html',
+  './',
+  './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -29,30 +31,25 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// ── Fetch: Cache First strategy (offline-first) ──
+// ── Fetch: Network First strategy（优先网络，离线时才用缓存）──
 self.addEventListener('fetch', event => {
-  // Only handle same-origin or file requests
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-
-      // Not in cache — fetch from network and cache it
-      return fetch(event.request).then(response => {
-        // Only cache valid responses
-        if (!response || response.status !== 200 || response.type === 'opaque') {
-          return response;
-        }
+    fetch(event.request).then(response => {
+      // 网络成功：更新缓存并返回最新内容
+      if (response && response.status === 200 && response.type !== 'opaque') {
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return response;
-      }).catch(() => {
-        // Network failed and not in cache
-        // For HTML pages, return the main app shell
-        if (event.request.headers.get('accept').includes('text/html')) {
-          return caches.match('./schedule_app.html');
+      }
+      return response;
+    }).catch(() => {
+      // 网络失败：回退到缓存（离线可用）
+      return caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+          return caches.match('./index.html');
         }
       });
     })
