@@ -42,13 +42,14 @@
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;}
 
 /* ── Header ── */
-.header{background:linear-gradient(135deg,#6c63ff,#a29bfe);color:#fff;padding:14px 16px 10px;position:sticky;top:0;z-index:100;box-shadow:0 3px 12px rgba(108,99,255,0.3);}
-.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.header-top h1{font-size:18px;font-weight:700;}
-.header-btns{display:flex;gap:6px;}
-.header-btn{background:rgba(255,255,255,0.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.header{background:linear-gradient(135deg,#6c63ff,#a29bfe);color:#fff;padding:10px 12px 6px;position:sticky;top:0;z-index:100;box-shadow:0 3px 12px rgba(108,99,255,0.3);}
+.header-top{display:flex;align-items:center;justify-content:space-between;}
+.header-left{display:flex;align-items:center;gap:8px;min-width:0;}
+.header-top h1{font-size:17px;font-weight:700;white-space:nowrap;}
+.today-badge{font-size:10px;background:rgba(255,255,255,0.22);padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.header-btns{display:flex;gap:4px;flex-shrink:0;}
+.header-btn{background:rgba(255,255,255,0.18);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
 .header-btn:active{background:rgba(255,255,255,0.35);}
-.today-badge{font-size:11px;background:rgba(255,255,255,0.22);padding:2px 8px;border-radius:20px;}
 .week-nav{display:flex;align-items:center;justify-content:space-between;}
 .week-nav button{background:rgba(255,255,255,0.2);border:none;color:#fff;padding:5px 12px;border-radius:20px;font-size:13px;cursor:pointer;transition:background .2s;}
 .week-nav button:active{background:rgba(255,255,255,0.35);}
@@ -509,18 +510,18 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 <!-- Header -->
 <div class="header">
   <div class="header-top">
-    <h1>🚀 轩哥计划</h1>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div class="header-left">
+      <h1>🚀 轩哥计划</h1>
       <div class="today-badge" id="todayBadge"></div>
-      <div class="header-btns">
-        <button class="header-btn" onclick="openFinance()" title="财务管家" style="font-size:16px">💰</button>
-        <button class="header-btn" onclick="openNotes()" title="考公资料" style="font-size:16px">📚</button>
-        <button class="header-btn" onclick="openReflections()" title="读书感悟" style="font-size:16px">📖</button>
-        <button class="header-btn" onclick="toggleTheme()" title="切换主题">🌙</button>
-        <button class="header-btn" onclick="openSummary()" title="周总结">📊</button>
-        <button class="header-btn" onclick="openMonthly()" title="月度总结">📅</button>
-        <button class="header-btn" onclick="openSettings()" title="设置">⚙️</button>
-      </div>
+    </div>
+    <div class="header-btns">
+      <button class="header-btn" onclick="openFinance()" title="财务管家" style="font-size:14px">💰</button>
+      <button class="header-btn" onclick="openNotes()" title="考公资料" style="font-size:14px">📚</button>
+      <button class="header-btn" onclick="openReflections()" title="读书感悟" style="font-size:14px">📖</button>
+      <button class="header-btn" onclick="toggleTheme()" title="切换主题">🌙</button>
+      <button class="header-btn" onclick="openSummary()" title="周总结">📊</button>
+      <button class="header-btn" onclick="openMonthly()" title="月度总结">📅</button>
+      <button class="header-btn" onclick="openSettings()" title="设置">⚙️</button>
     </div>
   </div>
   <div class="week-nav">
@@ -1382,15 +1383,7 @@ function toggleDone(dayKey,idx){
   const t=ts[idx];
   const wasDone=t.done;
   t.done=!wasDone;
-  // ⭐ 升级机制：首次完成时星星+1（最高3星，只升一次）
-  if(!wasDone && !t.starUpgraded && t.prio<3){
-    t.prio=t.prio+1;
-    t.starUpgraded=true;
-    const starMap={1:"⭐",2:"⭐⭐",3:"⭐⭐⭐"};
-    showToast(`✅ 已完成！升级到 ${starMap[t.prio]}`);
-  } else {
-    showToast(t.done?"✅ 已完成":"↩️ 已取消");
-  }
+  showToast(t.done?"✅ 已完成":"↩️ 已取消");
   save();render();
 }
 function switchDay(dayKey){currentDay=dayKey;render();}
