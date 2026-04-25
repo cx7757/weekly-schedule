@@ -506,6 +506,38 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .fin-month-nav button{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text);padding:4px 8px}
 .fin-month-nav span{font-size:15px;font-weight:700}
 .fin-empty{text-align:center;padding:30px 20px;color:var(--sub);font-size:14px}
+/* ===== 金额输入弹窗 v2.2 ===== */
+.fin-input-sheet{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -4px 30px rgba(0,0,0,.15);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-width:500px;margin:0 auto;padding:0}
+.fin-input-sheet.open{transform:translateY(0)}
+.fin-sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0}
+.fin-sheet-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 8px}
+.fin-sheet-header .fsh-cat{font-size:18px;font-weight:700}
+.fin-sheet-header .fsh-cancel{background:none;border:none;font-size:14px;color:var(--sub);cursor:pointer;padding:6px 12px;border-radius:20px}
+.fin-sheet-header .fsh-cancel:active{background:var(--bg)}
+.fin-sheet-amount{padding:8px 20px 12px;text-align:center}
+.fin-sheet-amount .fsa-label{font-size:12px;color:var(--sub)}
+.fin-sheet-amount .fsa-input{font-size:36px;font-weight:800;color:var(--text);background:none;border:none;outline:none;text-align:center;width:100%;padding:8px 0;letter-spacing:1px}
+.fin-sheet-amount .fsa-input::placeholder{color:var(--border);font-weight:400;font-size:24px}
+.fin-sheet-quick{display:flex;gap:8px;padding:0 20px 12px;justify-content:center}
+.fin-sheet-quick button{padding:8px 18px;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
+.fin-sheet-quick button:active{background:var(--bg);border-color:var(--accent)}
+.fin-sheet-quick button.fsq-active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fin-sheet-note{padding:0 20px 12px}
+.fin-sheet-note input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);background:var(--bg);outline:none}
+.fin-sheet-note input:focus{border-color:var(--accent)}
+.fin-sheet-cats{padding:0 20px 12px}
+.fin-sheet-cats .fsc-label{font-size:12px;color:var(--sub);margin-bottom:8px}
+.fin-sheet-cats .fsc-list{display:flex;flex-wrap:wrap;gap:8px}
+.fin-sheet-cats .fsc-tag{padding:6px 14px;border-radius:16px;border:1.5px solid var(--border);background:none;color:var(--text);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.fin-sheet-cats .fsc-tag:active{background:var(--bg)}
+.fin-sheet-cats .fsc-tag.fsc-active{border-color:var(--accent);background:rgba(0,184,148,.1)}
+.fin-sheet-submit{padding:8px 20px 24px}
+.fin-sheet-submit button{width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(0,184,148,.3)}
+.fin-sheet-submit button:active{opacity:.8;transform:scale(.98)}
+.fin-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.fin-sheet-overlay.open{opacity:1;pointer-events:auto}
+[data-theme="dark"] .fin-input-sheet{box-shadow:0 -4px 30px rgba(0,0,0,.5)}
+[data-theme="dark"] .fin-sheet-cats .fsc-tag.fsc-active{background:rgba(0,184,148,.2)}
 
 </style>
 </head>
@@ -2255,11 +2287,9 @@ function finRenderBook(){
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'shop\',\'淘宝\')"><span>🛒</span><span class="fq-label">淘宝</span></button>';
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'奶茶咖啡\')"><span>☕</span><span class="fq-label">奶茶咖啡</span></button>';
   h+='</div></div>';
-  h+='<div class="fin-card"><div class="fin-card-title">✏️ 自定义记账</div><div class="fin-add-form">';
-  h+='<select id="finAddCat"><option value="food">🍚 饭钱</option><option value="shop">🛒 购物</option><option value="daily">🧴 日用品</option><option value="transport">🚌 交通</option><option value="ent">🎮 娱乐</option><option value="health">💊 医疗</option><option value="other">📦 其他</option></select>';
-  h+='<input type="number" id="finAddAmount" placeholder="金额" inputmode="decimal" style="flex:1">';
-  h+='<input type="text" id="finAddNote" placeholder="备注（选填）" style="flex:1">';
-  h+='<button class="fin-add-btn" onclick="finAddExpense()">记</button></div></div>';
+  h+='<div class="fin-card"><div class="fin-card-title">✏️ 自定义记账</div>';
+  h+='<button class="fin-add-btn" onclick="finOpenSheet()" style="width:100%;padding:14px;font-size:15px;border-radius:12px">📝 记一笔</button>';
+  h+='</div>';
   // 撤销最近记录
   if(finRecords.length>0){
     var last=finRecords[finRecords.length-1];
@@ -2334,11 +2364,7 @@ function finQuickAdd(cat,arg2,arg3){
   if(typeof arg2==='number'){
     finAddRecord(cat,arg2,arg3||'');
   } else {
-    var amt=prompt(arg2+' - 输入金额（元）：');
-    if(amt===null||amt==='')return;
-    var num=parseFloat(amt);
-    if(!num||num<=0){showToast('⚠️ 请输入有效金额');return;}
-    finAddRecord(cat,num,arg2);
+    finOpenSheet(cat,arg2||'');
   }
 }
 function finAddExpense(){
@@ -2349,6 +2375,79 @@ function finAddExpense(){
   var name=note||FIN_CATS[cat].name;
   finAddRecord(cat,amount,name);
   document.getElementById('finAddAmount').value='';document.getElementById('finAddNote').value='';
+}
+/* ===== 金额输入弹窗 v2.2 ===== */
+var _finSheetState={cat:'food',name:'',quickAmt:0};
+function finOpenSheet(cat,name,preAmt){
+  _finSheetState={cat:cat||'food',name:name||'',quickAmt:preAmt||0};
+  // 创建overlay和sheet（首次）
+  if(!document.getElementById('finSheetOverlay')){
+    var ov=document.createElement('div');ov.id='finSheetOverlay';ov.className='fin-sheet-overlay';
+    ov.onclick=finCloseSheet;
+    document.body.appendChild(ov);
+    var sheet=document.createElement('div');sheet.id='finSheet';sheet.className='fin-input-sheet';
+    var catTags=FIN_CAT_KEYS.map(function(k){
+      var c=FIN_CATS[k];return '<button class="fsc-tag" data-cat="'+k+'" onclick="finSelectCat(\''+k+'\')">'+c.icon+' '+c.name+'</button>';
+    }).join('');
+    sheet.innerHTML='<div class="fin-sheet-handle"></div>'
+      +'<div class="fin-sheet-header"><span class="fsh-cat" id="fshCat">🍚 饭钱</span><button class="fsh-cancel" onclick="finCloseSheet()">取消</button></div>'
+      +'<div class="fin-sheet-amount"><div class="fsa-label">输入金额（元）</div><input type="number" class="fsa-input" id="fsaInput" placeholder="0.00" inputmode="decimal" step="0.01" autocomplete="off"></div>'
+      +'<div class="fin-sheet-quick"><button onclick="finSetQuick(10)">10</button><button onclick="finSetQuick(15)">15</button><button onclick="finSetQuick(20)">20</button><button onclick="finSetQuick(25)">25</button><button onclick="finSetQuick(30)">30</button><button onclick="finSetQuick(50)">50</button></div>'
+      +'<div class="fin-sheet-note"><input type="text" id="fsaNote" placeholder="备注（选填）"></div>'
+      +'<div class="fin-sheet-cats"><div class="fsc-label">选择分类</div><div class="fsc-list" id="fscList">'+catTags+'</div></div>'
+      +'<div class="fin-sheet-submit"><button onclick="finSubmitSheet()">✅ 记一笔</button></div>';
+    document.body.appendChild(sheet);
+  }
+  // 填充数据
+  var catInfo=FIN_CATS[_finSheetState.cat];
+  document.getElementById('fshCat').textContent=catInfo.icon+' '+catInfo.name;
+  document.getElementById('fsaNote').value=_finSheetState.name;
+  var inp=document.getElementById('fsaInput');inp.value='';inp.focus();
+  // 高亮分类
+  document.querySelectorAll('#fscList .fsc-tag').forEach(function(btn){
+    btn.classList.toggle('fsc-active',btn.dataset.cat===_finSheetState.cat);
+  });
+  // 高亮快捷金额
+  document.querySelectorAll('.fin-sheet-quick button').forEach(function(btn){
+    btn.classList.remove('fsq-active');
+  });
+  if(_finSheetState.quickAmt){
+    inp.value=_finSheetState.quickAmt;
+    document.querySelectorAll('.fin-sheet-quick button').forEach(function(btn){
+      btn.classList.toggle('fsq-active',parseInt(btn.textContent)===_finSheetState.quickAmt);
+    });
+  }
+  // 打开动画
+  setTimeout(function(){
+    document.getElementById('finSheetOverlay').classList.add('open');
+    document.getElementById('finSheet').classList.add('open');
+  },10);
+}
+function finCloseSheet(){
+  document.getElementById('finSheetOverlay').classList.remove('open');
+  document.getElementById('finSheet').classList.remove('open');
+}
+function finSelectCat(cat){
+  _finSheetState.cat=cat;
+  var catInfo=FIN_CATS[cat];
+  document.getElementById('fshCat').textContent=catInfo.icon+' '+catInfo.name;
+  document.querySelectorAll('#fscList .fsc-tag').forEach(function(btn){
+    btn.classList.toggle('fsc-active',btn.dataset.cat===cat);
+  });
+}
+function finSetQuick(amt){
+  document.getElementById('fsaInput').value=amt;
+  document.querySelectorAll('.fin-sheet-quick button').forEach(function(btn){
+    btn.classList.toggle('fsq-active',parseInt(btn.textContent)===amt);
+  });
+}
+function finSubmitSheet(){
+  var amt=parseFloat(document.getElementById('fsaInput').value);
+  if(!amt||amt<=0){showToast('⚠️ 请输入有效金额');return;}
+  var note=document.getElementById('fsaNote').value.trim();
+  var name=note||_finSheetState.name||FIN_CATS[_finSheetState.cat].name;
+  finAddRecord(_finSheetState.cat,amt,name);
+  finCloseSheet();
 }
 function finAddRecord(cat,amount,name){
   finRecords.push({id:Date.now(),cat:cat,amount:amount,name:name,date:finTodayStr(),time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
