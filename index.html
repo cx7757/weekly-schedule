@@ -436,6 +436,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .fin-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);transition:background .3s}
 .fin-card-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
 .fin-overview{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fin-overview.col3{grid-template-columns:repeat(3,1fr)}
 .fin-ov-item{text-align:center;padding:12px 8px;background:var(--bg);border-radius:12px}
 .fin-ov-item .fo-label{font-size:11px;color:var(--sub);margin-bottom:4px}
 .fin-ov-item .fo-val{font-size:22px;font-weight:800}
@@ -2155,25 +2156,35 @@ function finRender(){
 function finSwitchTab(idx){finTabIdx=idx;finRender();}
 
 function finRenderOverview(){
-  var curMs=finMonthStr();var curStats=finCalcStats(curMs);
-  if(curStats.total===0){var d=new Date();d.setMonth(d.getMonth()+1);finOverviewMs=finMonthStr(d);}
-  else{finOverviewMs=curMs;}
+  var curMs=finMonthStr();
+  // 强制显示当月（每月自动刷新，不再因消费为0跳到下月）
+  if(!finOverviewMs||finOverviewMs!==curMs)finOverviewMs=curMs;
   var ms=finOverviewMs;var stats=finCalcStats(ms);
   var left=finSettings.budget-stats.total;var estimatedSave=Math.max(0,left);
   var pct=stats.isCurrentMonth?Math.min(100,(stats.total/finSettings.budget)*100):0;
+  // 今日已花
+  var todayStr=finTodayStr();var todaySpent=finRecords.filter(function(r){return r.date===todayStr;}).reduce(function(s,r){return s+r.amount;},0);
   var el=document.getElementById('finTabContent');
-  var h='<div class="fin-card"><div class="fin-card-title">📌 本月概览</div><div class="fin-overview">';
-  h+='<div class="fin-ov-item"><div class="fo-label">月生活费</div><div class="fo-val">¥'+finSettings.budget+'</div></div>';
+  // 月份进度标识
+  var monthLabel=(+ms.split('-')[1])+'月';var dayInfo=stats.isCurrentMonth?'第'+stats.daysPassed+'天/'+stats.daysInMonth+'天':'共'+stats.daysInMonth+'天';
+  var h='<div class="fin-card"><div class="fin-card-title" style="justify-content:space-between"><span>📌 '+monthLabel+' 概览</span><span style="font-size:12px;color:var(--sub);font-weight:400">'+dayInfo+'</span></div><div class="fin-overview col3">';
+  h+='<div class="fin-ov-item"><div class="fo-label">月预算</div><div class="fo-val">¥'+finSettings.budget+'</div></div>';
   h+='<div class="fin-ov-item"><div class="fo-label">已支出</div><div class="fo-val red">¥'+stats.total.toFixed(0)+'</div></div>';
+  h+='<div class="fin-ov-item"><div class="fo-label">今日已花</div><div class="fo-val'+(todaySpent>finSettings.foodBudget*1.5?' red':todaySpent>0?' orange':'')+'">¥'+todaySpent.toFixed(0)+'</div></div>';
+  h+='</div><div class="fin-overview">';
   h+='<div class="fin-ov-item"><div class="fo-label">剩余可用</div><div class="fo-val green">¥'+Math.max(0,left).toFixed(0)+'</div></div>';
-  h+='<div class="fin-ov-item"><div class="fo-label">预计可攒</div><div class="fo-val orange">¥'+estimatedSave.toFixed(0)+'</div></div></div></div>';
+  h+='<div class="fin-ov-item"><div class="fo-label">预计可攒</div><div class="fo-val orange">¥'+estimatedSave.toFixed(0)+'</div></div>';
+  h+='<div class="fin-ov-item"><div class="fo-label">日均消费</div><div class="fo-val">¥'+stats.dailyAvg.toFixed(0)+'</div></div>';
+  h+='</div></div>';
   h+='<div class="fin-card"><div class="fin-card-title">📉 预算使用进度</div><div class="fin-budget-bar"><div class="fin-fill'+(pct>90?' danger':pct>70?' warn':'')+'" style="width:'+pct+'%"></div></div>';
-  h+='<div class="fin-budget-info"><span>'+(stats.total>0?pct.toFixed(1)+'%':'新月份，全新开始！')+'</span><span>'+(stats.total===0?'💪 从5月开始认真记账！':pct>90?'⚠️ 预算紧张！':pct>70?'⚡ 注意控制':'✅ 预算健康')+'</span></div></div>';
+  h+='<div class="fin-budget-info"><span>'+(stats.total>0?pct.toFixed(1)+'%':'💪 新月份，开始记账吧！')+'</span><span>'+(stats.total===0?'':pct>90?'⚠️ 预算紧张！':pct>70?'⚡ 注意控制':'✅ 预算健康')+'</span></div></div>';
+  // 每日可用余额：基于实际剩余+剩余天数动态计算
   var remainDays=stats.isCurrentMonth?Math.max(1,stats.daysInMonth-stats.daysPassed):stats.daysInMonth;
-  var dailyLeft=remainDays>0?(finSettings.budget-finSettings.fixedCost)/remainDays:0;
-  h+='<div class="fin-card"><div class="fin-card-title">📅 今日剩余可用</div><div class="fin-daily"><div class="fd-label">今天还可以花</div>';
+  var dailyLeft=0;
+  if(stats.isCurrentMonth){var todayLeft=Math.max(0,finSettings.budget-stats.total);dailyLeft=todayLeft/remainDays;}
+  h+='<div class="fin-card"><div class="fin-card-title">📅 每日可用（剩余'+remainDays+'天）</div><div class="fin-daily"><div class="fd-label">每天还可以花</div>';
   h+='<div class="fd-amount" style="color:'+(dailyLeft<finSettings.foodBudget?'var(--danger)':dailyLeft<finSettings.foodBudget*1.5?'var(--warn)':'var(--accent)')+'">¥'+dailyLeft.toFixed(1)+'</div>';
-  h+='<div class="fd-hint">'+(dailyLeft<finSettings.foodBudget?'⚠️ 低于饭钱标准，要省着点了':'合理消费，攒钱旅游！')+'</div></div></div>';
+  h+='<div class="fd-hint">'+(dailyLeft<finSettings.foodBudget?'⚠️ 低于饭钱标准，注意节约':'合理消费，攒钱旅游！')+'</div></div></div>';
   h+=finRenderTravelHTML();
   var mr=finGetMonthRecords(ms).sort(function(a,b){return b.id-a.id;});
   h+='<div class="fin-card"><div class="fin-card-title">🕐 最近记录</div>';
@@ -2193,6 +2204,8 @@ function finRenderTravelHTML(){
   allMonths.forEach(function(m){if(m<finMonthStr(startMonth))return;var s=finCalcStats(m);var sv=finSettings.budget-s.total;if(sv>0)totalSaved+=sv;});
   var oMs=finOverviewMs||finMonthStr();
   if(oMs>=finMonthStr(startMonth)){var cs=finCalcStats(oMs);var cSave=finSettings.budget-cs.total;if(cSave>0)totalSaved+=cSave;}
+  // 本月预计攒
+  var curMonthStats=finCalcStats(finMonthStr());var thisMonthSave=Math.max(0,finSettings.budget-curMonthStats.total);
   var pct=Math.min(100,(totalSaved/finSettings.goal)*100);
   var monthsToGo=Math.max(1,monthsLeft);var needPerMonth=(finSettings.goal-totalSaved)/monthsToGo;
   var status='';if(totalSaved>=finSettings.goal)status='🎉 目标已达成！';
@@ -2202,6 +2215,7 @@ function finRenderTravelHTML(){
   h+='<div style="font-size:12px;color:var(--sub)">目标：大四上学期（'+finSettings.deadline+'）</div>';
   h+='<div class="fin-tg-amount">¥'+totalSaved.toFixed(0)+'</div>';
   h+='<div style="font-size:12px;color:var(--sub)">'+status+'</div>';
+  h+='<div style="font-size:12px;margin-top:4px"><span style="color:var(--success);font-weight:600">本月预计攒 ¥'+thisMonthSave.toFixed(0)+'</span></div>';
   h+='<div class="fin-tg-bar"><div class="fin-fill" style="width:'+pct+'%"></div></div>';
   h+='<div class="fin-tg-dates"><span>'+finMonthStr(startMonth)+'</span><span>'+finSettings.deadline+'</span></div></div></div>';
   return h;
@@ -2210,7 +2224,9 @@ function finRenderTravelHTML(){
 function finRenderBook(){
   var ms=finOverviewMs||finMonthStr();
   var el=document.getElementById('finTabContent');
-  var h='<div class="fin-card"><div class="fin-card-title">⚡ 快捷记账</div><div class="fin-quick-btns">';
+  // 今日已花统计
+  var todayStr=finTodayStr();var todaySpent=finRecords.filter(function(r){return r.date===todayStr;}).reduce(function(s,r){return s+r.amount;},0);
+  var h='<div class="fin-card"><div class="fin-card-title" style="justify-content:space-between"><span>⚡ 快捷记账</span><span style="font-size:13px;color:'+(todaySpent>finSettings.foodBudget?'var(--danger)':'var(--sub)')+';font-weight:700">今日 ¥'+todaySpent.toFixed(0)+'</span></div><div class="fin-quick-btns">';
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'午饭\')"><span>🍚</span><span class="fq-label">午饭</span></button>';
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'晚饭\')"><span>🍜</span><span class="fq-label">晚饭</span></button>';
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'早饭\')"><span>🥞</span><span class="fq-label">早饭</span></button>';
