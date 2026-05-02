@@ -2124,18 +2124,181 @@ function deleteCustomNote(cat,sub,idx){
 // ── 财务管家 ──
 const FIN_REC_KEY='finance_records';
 const FIN_SET_KEY='finance_settings';
+const FIN_AUTH_KEY='finance_auth';
+const FIN_DEVICES_KEY='finance_devices';
 const FIN_CATS={food:{name:'饭钱',icon:'🍚',color:'#ff9800'},shop:{name:'购物',icon:'🛒',color:'#4caf50'},daily:{name:'日用品',icon:'🧴',color:'#2196f3'},transport:{name:'交通',icon:'🚌',color:'#e91e63'},ent:{name:'娱乐',icon:'🎮',color:'#9c27b0'},health:{name:'医疗',icon:'💊',color:'#00bcd4'},other:{name:'其他',icon:'📦',color:'#607d8b'}};
 const FIN_CAT_KEYS=Object.keys(FIN_CATS);
+const FIN_ACCOUNTS={alipay:{name:'支付宝',icon:'💙'},wechat:{name:'微信',icon:'💚'},cash:{name:'现金',icon:'💵'}};
 let finSettings={budget:2500,foodBudget:35,goal:5000,deadline:'2026-09',fixedCost:1223};
 let finRecords=[];
 let finTabIdx=0;
 let finStatMonthOffset=0;
 let finOverviewMs=null;
+let _finPwd='';
 
-function finLoadSettings(){try{var s=localStorage.getItem(FIN_SET_KEY);if(s)finSettings={...finSettings,...JSON.parse(s)};}catch(e){}}
-function finLoadRecords(){try{var r=localStorage.getItem(FIN_REC_KEY);if(r)finRecords=JSON.parse(r);}catch(e){finRecords=[];}}
-function finSaveRecords(){localStorage.setItem(FIN_REC_KEY,JSON.stringify(finRecords));}
-function finSaveSettings(){localStorage.setItem(FIN_SET_KEY,JSON.stringify(finSettings));}
+/* ===== 加密引擎 v2.3 ===== */
+function _finHash(str){
+  var h=0;
+  for(var i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}
+  return Math.abs(h).toString(36);
+}
+function _finDeviceId(){
+  var nav=['userAgent','language','platform','hardwareConcurrency'];
+  var s=nav.map(function(k){return navigator[k]||'';}).join('|');
+  var scr=[screen.width,screen.height,screen.colorDepth].join('x');
+  var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+  return _finHash(s+scr+tz);
+}
+function _finEncrypt(data,pwd){
+  var json=JSON.stringify(data);
+  var enc='';
+  for(var i=0;i<json.length;i++){
+    var c=json.charCodeAt(i)^pwd.charCodeAt(i%pwd.length);
+    var h=c.toString(16).padStart(2,'0');
+    enc+=h;
+  }
+  return enc;
+}
+function _finDecrypt(enc,pwd){
+  try{
+    var json='';
+    for(var i=0;i<enc.length;i+=2){
+      var c=parseInt(enc.substr(i,2),16)^pwd.charCodeAt((i/2)%pwd.length);
+      json+=String.fromCharCode(c);
+    }
+    return JSON.parse(json);
+  }catch(e){return null;}
+}
+function _finSaveEncrypted(key,data){
+  if(_finPwd){localStorage.setItem(key,'enc:'+_finEncrypt(data,_finPwd));}
+  else{localStorage.setItem(key,JSON.stringify(data));}
+}
+function _finLoadEncrypted(key){
+  var raw=localStorage.getItem(key);
+  if(!raw)return null;
+  if(raw.startsWith('enc:')){
+    if(!_finPwd)return null;
+    return _finDecrypt(raw.substring(4),_finPwd);
+  }
+  try{return JSON.parse(raw);}catch(e){return null;}
+}
+/* ===== 密码锁 ===== */
+function finIsDeviceTrusted(){
+  try{
+    var devices=_finLoadEncrypted(FIN_DEVICES_KEY);
+    if(!devices||!Array.isArray(devices))return false;
+    var myId=_finDeviceId();
+    return devices.some(function(d){return d.id===myId;});
+  }catch(e){return false;}
+}
+function finTrustCurrentDevice(){
+  try{
+    var devices=_finLoadEncrypted(FIN_DEVICES_KEY)||[];
+    var myId=_finDeviceId();
+    var exists=devices.some(function(d){return d.id===myId;});
+    if(!exists){
+      devices.push({id:myId,name:navigator.userAgent.substring(0,50),added:new Date().toISOString()});
+    }
+    _finSaveEncrypted(FIN_DEVICES_KEY,devices);
+  }catch(e){}
+}
+function finVerifyPassword(pwd){
+  var stored=localStorage.getItem(FIN_AUTH_KEY);
+  if(!stored)return false;
+  // stored是hash后的密码
+  return _finHash(pwd)===stored;
+}
+function finSetPassword(pwd){
+  localStorage.setItem(FIN_AUTH_KEY,_finHash(pwd));
+}
+function finCheckAuth(callback){
+  // 有密码且本设备已信任 → 免验
+  var hasAuth=!!localStorage.getItem(FIN_AUTH_KEY);
+  if(hasAuth&&finIsDeviceTrusted()){
+    // 用设备id反推pwd（简化方案：首次设置的密码需要在此设备重新验证才能解密数据）
+    // 实际上设备信任时密码已经存在，数据已在本地，这里需要用户输入一次密码来解密
+    // 但如果数据未加密（旧用户升级），直接通过
+    var recRaw=localStorage.getItem(FIN_REC_KEY);
+    if(recRaw&&!recRaw.startsWith('enc:')){
+      _finPwd='';
+      callback(true);
+      return;
+    }
+  }
+  if(!hasAuth){
+    // 首次使用，设置密码
+    finShowAuthModal(true,callback);
+  }else{
+    // 需要验证密码
+    finShowAuthModal(false,callback);
+  }
+}
+function finShowAuthModal(isSetup,callback){
+  var mask=document.getElementById('finAuthMask');
+  if(mask)mask.remove();
+  mask=document.createElement('div');mask.id='finAuthMask';mask.className='modal-mask';
+  mask.style.cssText='z-index:2000;display:flex;align-items:center;justify-content:center';
+  var title=isSetup?'🔒 设置财务密码':'🔒 请输入密码';
+  var hint=isSetup?'首次使用，请设置一个密码保护你的财务数据':'请输入你的财务密码';
+  var btnText=isSetup?'确认设置':'解锁';
+  mask.innerHTML='<div onclick="event.stopPropagation()" style="background:var(--card);border-radius:16px;padding:24px;width:300px;max-width:85vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    +'<div style="font-size:32px;margin-bottom:8px">🔐</div>'
+    +'<h3 style="margin:0 0 4px;font-size:17px">'+title+'</h3>'
+    +'<p style="font-size:12px;color:var(--sub);margin:0 0 16px">'+hint+'</p>'
+    +(isSetup?'<input class="form-input" type="password" id="finAuthPwd" placeholder="设置密码（至少4位）" style="width:100%;margin-bottom:8px;text-align:center;font-size:18px;letter-spacing:4px">'
+    +'<input class="form-input" type="password" id="finAuthPwd2" placeholder="确认密码" style="width:100%;margin-bottom:12px;text-align:center;font-size:18px;letter-spacing:4px">'
+    :'<input class="form-input" type="password" id="finAuthPwd" placeholder="输入密码" style="width:100%;margin-bottom:12px;text-align:center;font-size:18px;letter-spacing:4px">')
+    +'<button onclick="finDoAuth('+isSetup+','+callback+')" style="width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:700;cursor:pointer">'+btnText+'</button>'
+    +'<p style="font-size:11px;color:var(--sub);margin:12px 0 0">当前设备：'+_finDeviceId().substring(0,8)+'...</p>'
+    +'</div>';
+  mask.onclick=function(e){if(e.target===mask){}/* 不允许关闭 */};
+  document.body.appendChild(mask);
+  setTimeout(function(){document.getElementById('finAuthPwd').focus();},100);
+  // 回车确认
+  var inp=document.getElementById('finAuthPwd');
+  inp.onkeydown=function(e){if(e.key==='Enter')finDoAuth(isSetup,callback);};
+  if(isSetup){document.getElementById('finAuthPwd2').onkeydown=function(e){if(e.key==='Enter')finDoAuth(isSetup,callback);};}
+}
+function finDoAuth(isSetup,callback){
+  var pwd=document.getElementById('finAuthPwd').value;
+  if(!pwd||pwd.length<4){showToast('⚠️ 密码至少4位');return;}
+  if(isSetup){
+    var pwd2=document.getElementById('finAuthPwd2').value;
+    if(pwd!==pwd2){showToast('⚠️ 两次密码不一致');return;}
+    finSetPassword(pwd);
+    _finPwd=pwd;
+    finTrustCurrentDevice();
+    // 加密现有明文数据
+    _finMigrateData(pwd);
+    showToast('✅ 密码设置成功');
+    document.getElementById('finAuthMask').remove();
+    callback(true);
+  }else{
+    if(!finVerifyPassword(pwd)){showToast('❌ 密码错误');return;}
+    _finPwd=pwd;
+    finTrustCurrentDevice();
+    document.getElementById('finAuthMask').remove();
+    callback(true);
+  }
+}
+function _finMigrateData(pwd){
+  // 将明文数据迁移为加密数据
+  _finPwd=pwd;
+  var recRaw=localStorage.getItem(FIN_REC_KEY);
+  if(recRaw&&!recRaw.startsWith('enc:')){
+    try{var data=JSON.parse(recRaw);_finSaveEncrypted(FIN_REC_KEY,data);}catch(e){}
+  }
+  var setRaw=localStorage.getItem(FIN_SET_KEY);
+  if(setRaw&&!setRaw.startsWith('enc:')){
+    try{var data2=JSON.parse(setRaw);_finSaveEncrypted(FIN_SET_KEY,data2);}catch(e){}
+  }
+  localStorage.setItem(FIN_DEVICES_KEY,'enc:'+_finEncrypt([],pwd));
+}
+
+function finLoadSettings(){try{var s=_finLoadEncrypted(FIN_SET_KEY);if(s)finSettings={...finSettings,...s};}catch(e){}}
+function finLoadRecords(){try{var r=_finLoadEncrypted(FIN_REC_KEY);if(r)finRecords=r;else finRecords=[];}catch(e){finRecords=[];}}
+function finSaveRecords(){_finSaveEncrypted(FIN_REC_KEY,finRecords);}
+function finSaveSettings(){_finSaveEncrypted(FIN_SET_KEY,finSettings);}
 function finTodayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function finMonthStr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function finGetMonthRecords(ms){return finRecords.filter(function(r){return r.date.startsWith(ms);});}
@@ -2143,36 +2306,42 @@ function finCalcStats(ms){
   var mr=finGetMonthRecords(ms);var today=new Date();var p=ms.split('-').map(Number);
   var daysInMonth=new Date(p[0],p[1],0).getDate();var daysPassed=Math.min(today.getDate(),daysInMonth);
   var isCurrentMonth=(p[0]===today.getFullYear()&&p[1]===today.getMonth()+1);
-  var total=mr.reduce(function(s,r){return s+r.amount;},0);
+  var expenses=mr.filter(function(r){return r.type!=='income';});
+  var incomes=mr.filter(function(r){return r.type==='income';});
+  var total=expenses.reduce(function(s,r){return s+r.amount;},0);
+  var totalIncome=incomes.reduce(function(s,r){return s+r.amount;},0);
   var dailyAvg=daysPassed>0?total/daysPassed:0;
-  var maxSingle=mr.length?Math.max.apply(null,mr.map(function(r){return r.amount;})):0;
-  var uniqueDays=new Set(mr.map(function(r){return r.date;})).size;
+  var maxSingle=expenses.length?Math.max.apply(null,expenses.map(function(r){return r.amount;})):0;
+  var uniqueDays=new Set(expenses.map(function(r){return r.date;})).size;
   var catStats={};FIN_CAT_KEYS.forEach(function(k){catStats[k]=0;});
-  mr.forEach(function(r){catStats[r.cat]=(catStats[r.cat]||0)+r.amount;});
-  var dailyStats={};mr.forEach(function(r){dailyStats[r.date]=(dailyStats[r.date]||0)+r.amount;});
-  return{total:total,dailyAvg:dailyAvg,maxSingle:maxSingle,uniqueDays:uniqueDays,catStats:catStats,dailyStats:dailyStats,daysPassed:daysPassed,daysInMonth:daysInMonth,isCurrentMonth:isCurrentMonth};
+  expenses.forEach(function(r){catStats[r.cat]=(catStats[r.cat]||0)+r.amount;});
+  var dailyStats={};expenses.forEach(function(r){dailyStats[r.date]=(dailyStats[r.date]||0)+r.amount;});
+  return{total:total,totalIncome:totalIncome,dailyAvg:dailyAvg,maxSingle:maxSingle,uniqueDays:uniqueDays,catStats:catStats,dailyStats:dailyStats,daysPassed:daysPassed,daysInMonth:daysInMonth,isCurrentMonth:isCurrentMonth};
 }
 function finCalcStreak(){
   var today=new Date();var streak=0;
   for(var i=0;i<365;i++){
     var d=new Date(today);d.setDate(d.getDate()-i);
     var ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    if(finRecords.some(function(r){return r.date===ds;}))streak++;
+    if(finRecords.some(function(r){return r.date===ds&&r.type!=='income';}))streak++;
     else break;
   }
   return streak;
 }
 
 function openFinance(){
-  document.getElementById('finView').style.display='block';
-  document.querySelector('.header').style.display='none';
-  document.querySelector('.progress-wrap').style.display='none';
-  document.getElementById('studyFocusBar').style.display='none';
-  document.getElementById('dayTabs').style.display='none';
-  document.getElementById('mainArea').style.display='none';
-  document.getElementById('timerBar').style.display='none';
-  finTabIdx=0;finStatMonthOffset=0;
-  finRender();
+  finCheckAuth(function(ok){
+    if(!ok)return;
+    document.getElementById('finView').style.display='block';
+    document.querySelector('.header').style.display='none';
+    document.querySelector('.progress-wrap').style.display='none';
+    document.getElementById('studyFocusBar').style.display='none';
+    document.getElementById('dayTabs').style.display='none';
+    document.getElementById('mainArea').style.display='none';
+    document.getElementById('timerBar').style.display='none';
+    finTabIdx=0;finStatMonthOffset=0;
+    finRender();
+  });
 }
 function closeFinance(){
   document.getElementById('finView').style.display='none';
@@ -2205,31 +2374,47 @@ function finRenderOverview(){
   // 强制显示当月（每月自动刷新，不再因消费为0跳到下月）
   if(!finOverviewMs||finOverviewMs!==curMs)finOverviewMs=curMs;
   var ms=finOverviewMs;var stats=finCalcStats(ms);
-  var left=finSettings.budget-stats.total;var estimatedSave=Math.max(0,left);
-  var pct=stats.isCurrentMonth?Math.min(100,(stats.total/finSettings.budget)*100):0;
+  // 余额逻辑：有实际收入记录就用收入-支出，否则fallback到预算
+  var hasIncome=stats.totalIncome>0;
+  var effectiveBudget=hasIncome?stats.totalIncome:finSettings.budget;
+  var left=effectiveBudget-stats.total;var estimatedSave=Math.max(0,left);
+  var pct=stats.isCurrentMonth?Math.min(100,(stats.total/effectiveBudget)*100):0;
   // 今日已花
-  var todayStr=finTodayStr();var todaySpent=finRecords.filter(function(r){return r.date===todayStr;}).reduce(function(s,r){return s+r.amount;},0);
+  var todayStr=finTodayStr();var todaySpent=finRecords.filter(function(r){return r.date===todayStr&&r.type!=='income';}).reduce(function(s,r){return s+r.amount;},0);
   var el=document.getElementById('finTabContent');
   // 月份进度标识
   var monthLabel=(+ms.split('-')[1])+'月';var dayInfo=stats.isCurrentMonth?'第'+stats.daysPassed+'天/'+stats.daysInMonth+'天':'共'+stats.daysInMonth+'天';
   var h='<div class="fin-card"><div class="fin-card-title" style="justify-content:space-between"><span>📌 '+monthLabel+' 概览</span><span style="font-size:12px;color:var(--sub);font-weight:400">'+dayInfo+'</span></div><div class="fin-overview col3">';
-  h+='<div class="fin-ov-item"><div class="fo-label">月预算</div><div class="fo-val">¥'+finSettings.budget+'</div></div>';
+  h+='<div class="fin-ov-item"><div class="fo-label">'+(hasIncome?'本月收入':'月预算')+'</div><div class="fo-val green">¥'+effectiveBudget.toFixed(0)+'</div></div>';
   h+='<div class="fin-ov-item"><div class="fo-label">已支出</div><div class="fo-val red">¥'+stats.total.toFixed(0)+'</div></div>';
   h+='<div class="fin-ov-item"><div class="fo-label">今日已花</div><div class="fo-val'+(todaySpent>finSettings.foodBudget*1.5?' red':todaySpent>0?' orange':'')+'">¥'+todaySpent.toFixed(0)+'</div></div>';
   h+='</div><div class="fin-overview">';
-  h+='<div class="fin-ov-item"><div class="fo-label">剩余可用</div><div class="fo-val green">¥'+Math.max(0,left).toFixed(0)+'</div></div>';
+  h+='<div class="fin-ov-item"><div class="fo-label">实际余额</div><div class="fo-val'+(left<0?' red':' green')+'">¥'+left.toFixed(0)+'</div></div>';
   h+='<div class="fin-ov-item"><div class="fo-label">预计可攒</div><div class="fo-val orange">¥'+estimatedSave.toFixed(0)+'</div></div>';
   h+='<div class="fin-ov-item"><div class="fo-label">日均消费</div><div class="fo-val">¥'+stats.dailyAvg.toFixed(0)+'</div></div>';
   h+='</div></div>';
-  h+='<div class="fin-card"><div class="fin-card-title">📉 预算使用进度</div><div class="fin-budget-bar"><div class="fin-fill'+(pct>90?' danger':pct>70?' warn':'')+'" style="width:'+pct+'%"></div></div>';
+  h+='<div class="fin-card"><div class="fin-card-title">📉 支出进度</div><div class="fin-budget-bar"><div class="fin-fill'+(pct>90?' danger':pct>70?' warn':'')+'" style="width:'+pct+'%"></div></div>';
   h+='<div class="fin-budget-info"><span>'+(stats.total>0?pct.toFixed(1)+'%':'💪 新月份，开始记账吧！')+'</span><span>'+(stats.total===0?'':pct>90?'⚠️ 预算紧张！':pct>70?'⚡ 注意控制':'✅ 预算健康')+'</span></div></div>';
   // 每日可用余额：基于实际剩余+剩余天数动态计算
   var remainDays=stats.isCurrentMonth?Math.max(1,stats.daysInMonth-stats.daysPassed):stats.daysInMonth;
   var dailyLeft=0;
-  if(stats.isCurrentMonth){var todayLeft=Math.max(0,finSettings.budget-stats.total);dailyLeft=todayLeft/remainDays;}
+  if(stats.isCurrentMonth){var todayLeft=Math.max(0,effectiveBudget-stats.total);dailyLeft=todayLeft/remainDays;}
   h+='<div class="fin-card"><div class="fin-card-title">📅 每日可用（剩余'+remainDays+'天）</div><div class="fin-daily"><div class="fd-label">每天还可以花</div>';
   h+='<div class="fd-amount" style="color:'+(dailyLeft<finSettings.foodBudget?'var(--danger)':dailyLeft<finSettings.foodBudget*1.5?'var(--warn)':'var(--accent)')+'">¥'+dailyLeft.toFixed(1)+'</div>';
   h+='<div class="fd-hint">'+(dailyLeft<finSettings.foodBudget?'⚠️ 低于饭钱标准，注意节约':'合理消费，攒钱旅游！')+'</div></div></div>';
+  // 分账户余额
+  var mr4=finGetMonthRecords(ms);
+  var acctHtml='<div class="fin-card"><div class="fin-card-title">🏦 分账户余额</div><div class="fin-overview">';
+  Object.keys(FIN_ACCOUNTS).forEach(function(k){
+    var a=FIN_ACCOUNTS[k];
+    var inc=mr4.filter(function(r){return r.type==='income'&&r.account===k;}).reduce(function(s,r){return s+r.amount;},0);
+    var exp=mr4.filter(function(r){return r.type!=='income'&&r.account===k;}).reduce(function(s,r){return s+r.amount;},0);
+    var bal=inc-exp;
+    var color=bal>=0?'var(--success)':'var(--danger)';
+    acctHtml+='<div class="fin-ov-item"><div class="fo-label">'+a.icon+' '+a.name+'</div><div class="fo-val" style="color:'+color+'">¥'+bal.toFixed(0)+'</div></div>';
+  });
+  acctHtml+='</div></div>';
+  h+=acctHtml;
   // 连续记账天数
   var streak=finCalcStreak();
   var streakHtml='';
@@ -2249,13 +2434,13 @@ function finRenderTravelHTML(){
   var deadline=new Date(p[0],p[1]-1,1);
   var monthsLeft=Math.max(0,(deadline.getFullYear()-now.getFullYear())*12+deadline.getMonth()-now.getMonth());
   var startMonth=new Date(now.getFullYear(),now.getMonth(),1);startMonth.setMonth(startMonth.getMonth()+1);
-  var allMonths=new Set(finRecords.map(function(r){return r.date.substring(0,7);}));
+  var allMonths=new Set(finRecords.filter(function(r){return r.type!=='income';}).map(function(r){return r.date.substring(0,7);}));
   var totalSaved=0;
-  allMonths.forEach(function(m){if(m<finMonthStr(startMonth))return;var s=finCalcStats(m);var sv=finSettings.budget-s.total;if(sv>0)totalSaved+=sv;});
+  allMonths.forEach(function(m){if(m<finMonthStr(startMonth))return;var s=finCalcStats(m);var base=s.totalIncome>0?s.totalIncome:finSettings.budget;var sv=base-s.total;if(sv>0)totalSaved+=sv;});
   var oMs=finOverviewMs||finMonthStr();
-  if(oMs>=finMonthStr(startMonth)){var cs=finCalcStats(oMs);var cSave=finSettings.budget-cs.total;if(cSave>0)totalSaved+=cSave;}
+  if(oMs>=finMonthStr(startMonth)){var cs=finCalcStats(oMs);var base2=cs.totalIncome>0?cs.totalIncome:finSettings.budget;var cSave=base2-cs.total;if(cSave>0)totalSaved+=cSave;}
   // 本月预计攒
-  var curMonthStats=finCalcStats(finMonthStr());var thisMonthSave=Math.max(0,finSettings.budget-curMonthStats.total);
+  var curMonthStats=finCalcStats(finMonthStr());var curBase=curMonthStats.totalIncome>0?curMonthStats.totalIncome:finSettings.budget;var thisMonthSave=Math.max(0,curBase-curMonthStats.total);
   var pct=Math.min(100,(totalSaved/finSettings.goal)*100);
   var monthsToGo=Math.max(1,monthsLeft);var needPerMonth=(finSettings.goal-totalSaved)/monthsToGo;
   var status='';if(totalSaved>=finSettings.goal)status='🎉 目标已达成！';
@@ -2286,9 +2471,13 @@ function finRenderBook(){
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'daily\',50,\'话费\')"><span>📱</span><span class="fq-label">话费</span></button>';
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'shop\',\'淘宝\')"><span>🛒</span><span class="fq-label">淘宝</span></button>';
   h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'奶茶咖啡\')"><span>☕</span><span class="fq-label">奶茶咖啡</span></button>';
+  h+='<button class="fin-qbtn" onclick="finQuickAdd(\'food\',\'水果\')"><span>🍎</span><span class="fq-label">水果</span></button>';
   h+='</div></div>';
   h+='<div class="fin-card"><div class="fin-card-title">✏️ 自定义记账</div>';
-  h+='<button class="fin-add-btn" onclick="finOpenSheet()" style="width:100%;padding:14px;font-size:15px;border-radius:12px">📝 记一笔</button>';
+  h+='<button class="fin-add-btn" onclick="finOpenSheet()" style="width:100%;padding:14px;font-size:15px;border-radius:12px">📝 记一笔支出</button>';
+  h+='</div>';
+  h+='<div class="fin-card" style="border-top:2px solid var(--success)"><div class="fin-card-title" style="color:var(--success)">💰 记录收入</div>';
+  h+='<button class="fin-add-btn" onclick="finOpenIncomeSheet()" style="width:100%;padding:14px;font-size:15px;border-radius:12px;background:linear-gradient(135deg,#00b894,#00cec9)">＋ 记一笔收入</button>';
   h+='</div>';
   // 撤销最近记录
   if(finRecords.length>0){
@@ -2342,6 +2531,9 @@ function finRenderSettings(){
   h+='<div class="fin-setting-row"><label>攒钱截止日期</label><input type="month" id="finSetDeadline" value="'+finSettings.deadline+'"></div>';
   h+='<div class="fin-setting-row"><label>每月固定支出</label><input type="number" id="finSetFixed" value="'+finSettings.fixedCost+'" title="饭钱1050+话费100+唇膏70+药53"></div>';
   h+='<button class="fin-save-btn" onclick="finSaveSettingsForm()">💾 保存设置</button></div>';
+  h+='<div class="fin-card"><div class="fin-card-title">🔐 安全设置</div>';
+  h+='<button class="fin-save-btn" onclick="finChangePassword()" style="margin-top:0;margin-bottom:8px">🔑 修改密码</button>';
+  h+='<div style="font-size:12px;color:var(--sub);line-height:1.6;padding:4px 0">当前设备ID：'+_finDeviceId().substring(0,12)+'...<br>数据已加密存储，换设备需验证密码</div></div>';
   h+='<div class="fin-card"><div class="fin-card-title">🔧 数据管理</div>';
   h+='<button class="fin-save-btn" onclick="finExportData()" style="margin-top:0;margin-bottom:8px">📤 导出数据</button>';
   h+='<button class="fin-save-btn" onclick="document.getElementById(\'finImportFile\').click()" style="margin-top:0;background:linear-gradient(135deg,#6c5ce7,#a29bfe)">📥 导入数据</button>';
@@ -2377,9 +2569,9 @@ function finAddExpense(){
   document.getElementById('finAddAmount').value='';document.getElementById('finAddNote').value='';
 }
 /* ===== 金额输入弹窗 v2.2 ===== */
-var _finSheetState={cat:'food',name:'',quickAmt:0};
+var _finSheetState={cat:'food',name:'',quickAmt:0,account:'wechat'};
 function finOpenSheet(cat,name,preAmt){
-  _finSheetState={cat:cat||'food',name:name||'',quickAmt:preAmt||0};
+  _finSheetState={cat:cat||'food',name:name||'',quickAmt:preAmt||0,account:_finSheetState.account||'wechat'};
   // 创建overlay和sheet（首次）
   if(!document.getElementById('finSheetOverlay')){
     var ov=document.createElement('div');ov.id='finSheetOverlay';ov.className='fin-sheet-overlay';
@@ -2389,12 +2581,16 @@ function finOpenSheet(cat,name,preAmt){
     var catTags=FIN_CAT_KEYS.map(function(k){
       var c=FIN_CATS[k];return '<button class="fsc-tag" data-cat="'+k+'" onclick="finSelectCat(\''+k+'\')">'+c.icon+' '+c.name+'</button>';
     }).join('');
+    var acctTags=Object.keys(FIN_ACCOUNTS).map(function(k){
+      var a=FIN_ACCOUNTS[k];return '<button class="fsa-acct-tag" data-acct="'+k+'" onclick="finSelectAcct(\''+k+'\')">'+a.icon+' '+a.name+'</button>';
+    }).join('');
     sheet.innerHTML='<div class="fin-sheet-handle"></div>'
       +'<div class="fin-sheet-header"><span class="fsh-cat" id="fshCat">🍚 饭钱</span><button class="fsh-cancel" onclick="finCloseSheet()">取消</button></div>'
       +'<div class="fin-sheet-amount"><div class="fsa-label">输入金额（元）</div><input type="number" class="fsa-input" id="fsaInput" placeholder="0.00" inputmode="decimal" step="0.01" autocomplete="off"></div>'
       +'<div class="fin-sheet-quick"><button onclick="finSetQuick(10)">10</button><button onclick="finSetQuick(15)">15</button><button onclick="finSetQuick(20)">20</button><button onclick="finSetQuick(25)">25</button><button onclick="finSetQuick(30)">30</button><button onclick="finSetQuick(50)">50</button></div>'
       +'<div class="fin-sheet-note"><input type="text" id="fsaNote" placeholder="备注（选填）"></div>'
       +'<div class="fin-sheet-cats"><div class="fsc-label">选择分类</div><div class="fsc-list" id="fscList">'+catTags+'</div></div>'
+      +'<div class="fin-sheet-cats" style="margin-top:10px"><div class="fsc-label">选择账户</div><div class="fsc-list" id="fsaAcctList" style="gap:6px">'+acctTags+'</div></div>'
       +'<div class="fin-sheet-submit"><button onclick="finSubmitSheet()">✅ 记一笔</button></div>';
     document.body.appendChild(sheet);
   }
@@ -2406,6 +2602,10 @@ function finOpenSheet(cat,name,preAmt){
   // 高亮分类
   document.querySelectorAll('#fscList .fsc-tag').forEach(function(btn){
     btn.classList.toggle('fsc-active',btn.dataset.cat===_finSheetState.cat);
+  });
+  // 高亮账户
+  document.querySelectorAll('#fsaAcctList .fsa-acct-tag').forEach(function(btn){
+    btn.classList.toggle('fsc-active',btn.dataset.acct===_finSheetState.account);
   });
   // 高亮快捷金额
   document.querySelectorAll('.fin-sheet-quick button').forEach(function(btn){
@@ -2435,6 +2635,12 @@ function finSelectCat(cat){
     btn.classList.toggle('fsc-active',btn.dataset.cat===cat);
   });
 }
+function finSelectAcct(acct){
+  _finSheetState.account=acct;
+  document.querySelectorAll('#fsaAcctList .fsa-acct-tag').forEach(function(btn){
+    btn.classList.toggle('fsc-active',btn.dataset.acct===acct);
+  });
+}
 function finSetQuick(amt){
   document.getElementById('fsaInput').value=amt;
   document.querySelectorAll('.fin-sheet-quick button').forEach(function(btn){
@@ -2446,20 +2652,107 @@ function finSubmitSheet(){
   if(!amt||amt<=0){showToast('⚠️ 请输入有效金额');return;}
   var note=document.getElementById('fsaNote').value.trim();
   var name=note||_finSheetState.name||FIN_CATS[_finSheetState.cat].name;
-  finAddRecord(_finSheetState.cat,amt,name);
+  finAddRecord(_finSheetState.cat,amt,name,null,null,_finSheetState.account);
   finCloseSheet();
 }
-function finAddRecord(cat,amount,name){
-  finRecords.push({id:Date.now(),cat:cat,amount:amount,name:name,date:finTodayStr(),time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
-  finSaveRecords();showToast('✅ 已记录 ¥'+amount);finRender();
+/* ===== 收入记录弹窗 v2.3 ===== */
+function finOpenIncomeSheet(){
+  var modal=document.getElementById('finIncomeModal');
+  if(!modal){
+    modal=document.createElement('div');modal.id='finIncomeModal';modal.className='modal-mask';
+    modal.innerHTML='<div class="modal" onclick="event.stopPropagation()" style="max-width:360px">'
+      +'<h3>💰 记录收入</h3>'
+      +'<div class="form-label">收入来源</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px" id="finIncomeTagRow">'
+      +'<button class="fsc-tag fsc-active" data-tag="生活费" onclick="finIncomeTagClick(this)">生活费</button>'
+      +'<button class="fsc-tag" data-tag="奖学金" onclick="finIncomeTagClick(this)">奖学金</button>'
+      +'<button class="fsc-tag" data-tag="兼职收入" onclick="finIncomeTagClick(this)">兼职收入</button>'
+      +'<button class="fsc-tag" data-tag="红包" onclick="finIncomeTagClick(this)">红包</button>'
+      +'<button class="fsc-tag" data-tag="其他" onclick="finIncomeTagClick(this)">其他</button>'
+      +'</div>'
+      +'<div class="form-label">自定义备注（可选）</div>'
+      +'<input class="form-input" type="text" id="finIncomeName" placeholder="留空则使用上方标签名" style="width:100%;margin-bottom:8px">'
+      +'<div class="form-label">金额（元）</div>'
+      +'<input class="form-input" type="number" id="finIncomeAmt" placeholder="例如 2500" inputmode="decimal" style="width:100%;margin-bottom:8px">'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">'
+      +'<button class="fsc-tag" onclick="document.getElementById(\'finIncomeAmt\').value=2500">2500</button>'
+      +'<button class="fsc-tag" onclick="document.getElementById(\'finIncomeAmt\').value=2000">2000</button>'
+      +'<button class="fsc-tag" onclick="document.getElementById(\'finIncomeAmt\').value=1000">1000</button>'
+      +'<button class="fsc-tag" onclick="document.getElementById(\'finIncomeAmt\').value=500">500</button>'
+      +'</div>'
+      +'<div class="form-label">到账日期</div>'
+      +'<input class="form-input" type="date" id="finIncomeDate" style="width:100%;margin-bottom:8px">'
+      +'<div class="form-label">到账账户</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px" id="finIncomeAcctRow">'
+      +'<button class="fsc-tag fsc-active" data-acct="alipay" onclick="finIncomeAcctClick(this)">💙 支付宝</button>'
+      +'<button class="fsc-tag" data-acct="wechat" onclick="finIncomeAcctClick(this)">💚 微信</button>'
+      +'<button class="fsc-tag" data-acct="cash" onclick="finIncomeAcctClick(this)">💵 现金</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<button onclick="closeFinIncome()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--sub);font-size:14px;cursor:pointer">取消</button>'
+      +'<button onclick="saveFinIncome()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#00b894,#00cec9);color:#fff;font-size:14px;font-weight:700;cursor:pointer">✅ 确认收入</button>'
+      +'</div></div>';
+    modal.onclick=function(e){if(e.target===modal)closeFinIncome();};
+    document.body.appendChild(modal);
+  }
+  // 设置默认日期为今天
+  document.getElementById('finIncomeDate').value=finTodayStr();
+  document.getElementById('finIncomeAmt').value='';
+  document.getElementById('finIncomeName').value='';
+  // 重置标签选中
+  document.querySelectorAll('#finIncomeTagRow .fsc-tag').forEach(function(btn,i){btn.classList.toggle('fsc-active',i===0);});
+  document.querySelectorAll('#finIncomeAcctRow .fsc-tag').forEach(function(btn,i){btn.classList.toggle('fsc-active',i===0);});
+  modal.classList.add('open');
+  setTimeout(function(){document.getElementById('finIncomeAmt').focus();},100);
+}
+function finIncomeTagClick(btn){
+  document.querySelectorAll('#finIncomeTagRow .fsc-tag').forEach(function(b){b.classList.remove('fsc-active');});
+  btn.classList.add('fsc-active');
+}
+function finIncomeAcctClick(btn){
+  document.querySelectorAll('#finIncomeAcctRow .fsc-tag').forEach(function(b){b.classList.remove('fsc-active');});
+  btn.classList.add('fsc-active');
+}
+function closeFinIncome(){
+  var m=document.getElementById('finIncomeModal');
+  if(m)m.classList.remove('open');
+}
+function saveFinIncome(){
+  var amt=parseFloat(document.getElementById('finIncomeAmt').value);
+  if(!amt||amt<=0){showToast('⚠️ 请输入有效金额');return;}
+  var activeTag=document.querySelector('#finIncomeTagRow .fsc-tag.fsc-active');
+  var tagName=activeTag?activeTag.dataset.tag:'收入';
+  var customName=document.getElementById('finIncomeName').value.trim();
+  var name=customName||tagName;
+  var date=document.getElementById('finIncomeDate').value||finTodayStr();
+  var activeAcct=document.querySelector('#finIncomeAcctRow .fsc-tag.fsc-active');
+  var account=activeAcct?activeAcct.dataset.acct:'alipay';
+  finAddRecord('other',amt,name,date,'income',account);
+  closeFinIncome();
+}
+function finAddRecord(cat,amount,name,dateStr,type,account){
+  var d=dateStr||finTodayStr();
+  var t=type||'expense';
+  var acc=account||_finSheetState.account||'wechat';
+  finRecords.push({id:Date.now(),cat:cat,amount:amount,name:name,date:d,time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),type:t,account:acc});
+  finSaveRecords();
+  if(t==='income')showToast('💰 收入 ¥'+amount+' 已记录');
+  else showToast('✅ 已记录 ¥'+amount);
+  finRender();
 }
 function finDeleteRecord(id){
   finRecords=finRecords.filter(function(r){return r.id!==id;});
   finSaveRecords();showToast('🗑️ 已删除');finRender();
 }
 function finRecordHTML(r){
-  var cat=FIN_CATS[r.cat]||FIN_CATS.other;
-  return '<div class="fin-record" onclick="finEditRecord('+r.id+')" style="cursor:pointer"><div class="fr-icon fin-cat-'+r.cat+'">'+cat.icon+'</div><div class="fr-info"><div class="fr-name">'+r.name+'</div><div class="fr-meta">'+r.time+' · '+cat.name+'</div></div><div class="fr-amount">-¥'+r.amount.toFixed(r.amount%1?2:0)+'</div><button class="fr-del" onclick="event.stopPropagation();finDeleteRecord('+r.id+')" title="删除">✕</button></div>';
+  var isIncome=r.type==='income';
+  var cat=isIncome?{icon:'💰',name:'收入',color:'#00b894'}:(FIN_CATS[r.cat]||FIN_CATS.other);
+  var amtStr=isIncome?('+¥'+r.amount.toFixed(r.amount%1?2:0)):('-¥'+r.amount.toFixed(r.amount%1?2:0));
+  var amtColor=isIncome?'var(--success)':'var(--danger)';
+  var catClass=isIncome?'':('fin-cat-'+r.cat);
+  var acctInfo=r.account&&FIN_ACCOUNTS[r.account]?FIN_ACCOUNTS[r.account]:null;
+  var acctBadge=acctInfo?('<span style="font-size:10px;opacity:.7;margin-left:4px">'+acctInfo.icon+'</span>'):'';
+  return '<div class="fin-record" onclick="finEditRecord('+r.id+')" style="cursor:pointer"><div class="fr-icon '+catClass+'" style="'+(isIncome?'background:rgba(0,184,148,.15);color:#00b894':'')+'">'+cat.icon+'</div><div class="fr-info"><div class="fr-name">'+r.name+acctBadge+'</div><div class="fr-meta">'+r.time+' · '+cat.name+(r.date?' · '+r.date:'')+'</div></div><div class="fr-amount" style="color:'+amtColor+'">'+amtStr+'</div><button class="fr-del" onclick="event.stopPropagation();finDeleteRecord('+r.id+')" title="删除">✕</button></div>';
 }
 function finEditRecord(id){
   var r=finRecords.find(function(r){return r.id===id;});
@@ -2507,6 +2800,48 @@ function finImportData(e){
   showToast('✅ 导入成功');finRender();}catch(err){showToast('❌ 导入失败');}};
   reader.readAsText(file);e.target.value='';
 }
+function finChangePassword(){
+  var modal=document.getElementById('finChgPwdModal');
+  if(!modal){
+    modal=document.createElement('div');modal.id='finChgPwdModal';modal.className='modal-mask';
+    modal.innerHTML='<div class="modal" onclick="event.stopPropagation()" style="max-width:340px">'
+      +'<h3>🔑 修改密码</h3>'
+      +'<div class="form-label">当前密码</div>'
+      +'<input class="form-input" type="password" id="finChgOld" style="width:100%;margin-bottom:8px;text-align:center;font-size:16px">'
+      +'<div class="form-label">新密码（至少4位）</div>'
+      +'<input class="form-input" type="password" id="finChgNew" style="width:100%;margin-bottom:8px;text-align:center;font-size:16px">'
+      +'<div class="form-label">确认新密码</div>'
+      +'<input class="form-input" type="password" id="finChgNew2" style="width:100%;margin-bottom:12px;text-align:center;font-size:16px">'
+      +'<div style="display:flex;gap:8px">'
+      +'<button onclick="document.getElementById(\'finChgPwdModal\').classList.remove(\'open\')" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--sub);font-size:14px;cursor:pointer">取消</button>'
+      +'<button onclick="finDoChangePassword()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:700;cursor:pointer">确认修改</button>'
+      +'</div></div>';
+    modal.onclick=function(e){if(e.target===modal)modal.classList.remove('open');};
+    document.body.appendChild(modal);
+  }
+  document.getElementById('finChgOld').value='';
+  document.getElementById('finChgNew').value='';
+  document.getElementById('finChgNew2').value='';
+  modal.classList.add('open');
+  setTimeout(function(){document.getElementById('finChgOld').focus();},100);
+}
+function finDoChangePassword(){
+  var oldPwd=document.getElementById('finChgOld').value;
+  var newPwd=document.getElementById('finChgNew').value;
+  var newPwd2=document.getElementById('finChgNew2').value;
+  if(!oldPwd||!finVerifyPassword(oldPwd)){showToast('❌ 当前密码错误');return;}
+  if(!newPwd||newPwd.length<4){showToast('⚠️ 新密码至少4位');return;}
+  if(newPwd!==newPwd2){showToast('⚠️ 两次密码不一致');return;}
+  finSetPassword(newPwd);
+  // 用新密码重新加密数据
+  _finPwd=newPwd;
+  _finSaveEncrypted(FIN_REC_KEY,finRecords);
+  _finSaveEncrypted(FIN_SET_KEY,finSettings);
+  _finSaveEncrypted(FIN_DEVICES_KEY,localStorage.getItem(FIN_DEVICES_KEY)?JSON.parse(_finDecrypt(localStorage.getItem(FIN_DEVICES_KEY).replace('enc:',''),oldPwd)||'[]'):[]);
+  document.getElementById('finChgPwdModal').classList.remove('open');
+  showToast('✅ 密码修改成功');
+}
+
 function finClearAll(){
   if(!confirm('确定要清空所有记账数据吗？此操作不可恢复！'))return;
   finRecords=[];finSaveRecords();showToast('🗑️ 数据已清空');finRender();
