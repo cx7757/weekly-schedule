@@ -1920,7 +1920,7 @@ function renderNotesHome(){
   var merged=getMergedNotes();
   var cats=Object.keys(merged);
   var total=0;cats.forEach(c=>{total+=Object.values(merged[c]).reduce((s,arr)=>s+arr.length,0);});
-  el.innerHTML='<div class="notes-home"><h2>📚 考公资料库</h2><div class="notes-stats">共 '+total+' 条知识点 · '+cats.length+' 大分类</div><input class="notes-search" id="notesSearchInput" placeholder="🔍 搜索知识点..." oninput="onNotesSearch()"><div class="notes-search-results" id="notesSearchResults"></div><div class="notes-grid" id="notesGrid"></div></div>';
+  el.innerHTML='<div class="notes-home"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><button class="notes-back-btn" onclick="closeNotes()" style="flex-shrink:0">← 返回</button><h2 style="margin:0">📚 考公资料库</h2></div><div class="notes-stats">共 '+total+' 条知识点 · '+cats.length+' 大分类</div><input class="notes-search" id="notesSearchInput" placeholder="🔍 搜索知识点..." oninput="onNotesSearch()"><div class="notes-search-results" id="notesSearchResults"></div><div class="notes-grid" id="notesGrid"></div></div>';
   document.getElementById('notesHomeBtn').style.display='none';
   var grid=document.getElementById('notesGrid');
   grid.innerHTML=cats.map(function(c){
@@ -2121,11 +2121,9 @@ function deleteCustomNote(cat,sub,idx){
   openNotesSub(cat,sub);
 }
 
-// ── 财务管家 ──
+// ── 财务管家（极简密码方案 v1.0）──
 const FIN_REC_KEY='finance_records';
 const FIN_SET_KEY='finance_settings';
-const FIN_AUTH_KEY='finance_auth';
-const FIN_DEVICES_KEY='finance_devices';
 const FIN_CATS={food:{name:'饭钱',icon:'🍚',color:'#ff9800'},shop:{name:'购物',icon:'🛒',color:'#4caf50'},daily:{name:'日用品',icon:'🧴',color:'#2196f3'},transport:{name:'交通',icon:'🚌',color:'#e91e63'},ent:{name:'娱乐',icon:'🎮',color:'#9c27b0'},health:{name:'医疗',icon:'💊',color:'#00bcd4'},other:{name:'其他',icon:'📦',color:'#607d8b'}};
 const FIN_CAT_KEYS=Object.keys(FIN_CATS);
 const FIN_ACCOUNTS={alipay:{name:'支付宝',icon:'💙'},wechat:{name:'微信',icon:'💚'},cash:{name:'现金',icon:'💵'}};
@@ -2134,171 +2132,71 @@ let finRecords=[];
 let finTabIdx=0;
 let finStatMonthOffset=0;
 let finOverviewMs=null;
-let _finPwd='';
 
-/* ===== 加密引擎 v2.3 ===== */
-function _finHash(str){
-  var h=0;
-  for(var i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}
-  return Math.abs(h).toString(36);
+/* ===== 极简密码验证 ===== */
+function finIsSetPwd(){
+  return !!localStorage.getItem('fin_pwd');
 }
-function _finDeviceId(){
-  var nav=['userAgent','language','platform','hardwareConcurrency'];
-  var s=nav.map(function(k){return navigator[k]||'';}).join('|');
-  var scr=[screen.width,screen.height,screen.colorDepth].join('x');
-  var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
-  return _finHash(s+scr+tz);
-}
-function _finEncrypt(data,pwd){
-  var json=JSON.stringify(data);
-  var enc='';
-  for(var i=0;i<json.length;i++){
-    var c=json.charCodeAt(i)^pwd.charCodeAt(i%pwd.length);
-    var h=c.toString(16).padStart(2,'0');
-    enc+=h;
-  }
-  return enc;
-}
-function _finDecrypt(enc,pwd){
-  try{
-    var json='';
-    for(var i=0;i<enc.length;i+=2){
-      var c=parseInt(enc.substr(i,2),16)^pwd.charCodeAt((i/2)%pwd.length);
-      json+=String.fromCharCode(c);
-    }
-    return JSON.parse(json);
-  }catch(e){return null;}
-}
-function _finSaveEncrypted(key,data){
-  if(_finPwd){localStorage.setItem(key,'enc:'+_finEncrypt(data,_finPwd));}
-  else{localStorage.setItem(key,JSON.stringify(data));}
-}
-function _finLoadEncrypted(key){
-  var raw=localStorage.getItem(key);
-  if(!raw)return null;
-  if(raw.startsWith('enc:')){
-    if(!_finPwd)return null;
-    return _finDecrypt(raw.substring(4),_finPwd);
-  }
-  try{return JSON.parse(raw);}catch(e){return null;}
-}
-/* ===== 密码锁 ===== */
-function finIsDeviceTrusted(){
-  try{
-    var devices=_finLoadEncrypted(FIN_DEVICES_KEY);
-    if(!devices||!Array.isArray(devices))return false;
-    var myId=_finDeviceId();
-    return devices.some(function(d){return d.id===myId;});
-  }catch(e){return false;}
-}
-function finTrustCurrentDevice(){
-  try{
-    var devices=_finLoadEncrypted(FIN_DEVICES_KEY)||[];
-    var myId=_finDeviceId();
-    var exists=devices.some(function(d){return d.id===myId;});
-    if(!exists){
-      devices.push({id:myId,name:navigator.userAgent.substring(0,50),added:new Date().toISOString()});
-    }
-    _finSaveEncrypted(FIN_DEVICES_KEY,devices);
-  }catch(e){}
-}
-function finVerifyPassword(pwd){
-  var stored=localStorage.getItem(FIN_AUTH_KEY);
-  if(!stored)return false;
-  // stored是hash后的密码
-  return _finHash(pwd)===stored;
-}
-function finSetPassword(pwd){
-  localStorage.setItem(FIN_AUTH_KEY,_finHash(pwd));
-}
-function finCheckAuth(callback){
-  // 有密码且本设备已信任 → 免验
-  var hasAuth=!!localStorage.getItem(FIN_AUTH_KEY);
-  if(hasAuth&&finIsDeviceTrusted()){
-    // 用设备id反推pwd（简化方案：首次设置的密码需要在此设备重新验证才能解密数据）
-    // 实际上设备信任时密码已经存在，数据已在本地，这里需要用户输入一次密码来解密
-    // 但如果数据未加密（旧用户升级），直接通过
-    var recRaw=localStorage.getItem(FIN_REC_KEY);
-    if(recRaw&&!recRaw.startsWith('enc:')){
-      _finPwd='';
-      callback(true);
-      return;
+function finCheckAuth(){
+  // 返回true=已认证，false=未认证
+  if(sessionStorage.getItem('fin_auth')==='ok')return true;
+  if(localStorage.getItem('fin_remember')==='ok')return true;
+  var params=window.location.search+window.location.hash;
+  var match=params.match(/[?&#]fin=([^&?#]*)/);
+  if(match){
+    var urlPwd=decodeURIComponent(match[1]);
+    if(urlPwd===localStorage.getItem('fin_pwd')){
+      sessionStorage.setItem('fin_auth','ok');
+      return true;
     }
   }
-  if(!hasAuth){
-    // 首次使用，设置密码
-    finShowAuthModal(true,callback);
-  }else{
-    // 需要验证密码
-    finShowAuthModal(false,callback);
-  }
+  return false;
 }
-function finShowAuthModal(isSetup,callback){
-  var mask=document.getElementById('finAuthMask');
-  if(mask)mask.remove();
-  mask=document.createElement('div');mask.id='finAuthMask';mask.className='modal-mask';
-  mask.style.cssText='z-index:2000;display:flex;align-items:center;justify-content:center';
-  var title=isSetup?'🔒 设置财务密码':'🔒 请输入密码';
-  var hint=isSetup?'首次使用，请设置一个密码保护你的财务数据':'请输入你的财务密码';
-  var btnText=isSetup?'确认设置':'解锁';
+function finShowLockScreen(){
+  var mask=document.createElement('div');
+  mask.className='modal-mask';
+  mask.style.zIndex='2000';
+  mask.id='finLockScreen';
   mask.innerHTML='<div onclick="event.stopPropagation()" style="background:var(--card);border-radius:16px;padding:24px;width:300px;max-width:85vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
     +'<div style="font-size:32px;margin-bottom:8px">🔐</div>'
-    +'<h3 style="margin:0 0 4px;font-size:17px">'+title+'</h3>'
-    +'<p style="font-size:12px;color:var(--sub);margin:0 0 16px">'+hint+'</p>'
-    +(isSetup?'<input class="form-input" type="password" id="finAuthPwd" placeholder="设置密码（至少4位）" style="width:100%;margin-bottom:8px;text-align:center;font-size:18px;letter-spacing:4px">'
-    +'<input class="form-input" type="password" id="finAuthPwd2" placeholder="确认密码" style="width:100%;margin-bottom:12px;text-align:center;font-size:18px;letter-spacing:4px">'
-    :'<input class="form-input" type="password" id="finAuthPwd" placeholder="输入密码" style="width:100%;margin-bottom:12px;text-align:center;font-size:18px;letter-spacing:4px">')
-    +'<button onclick="finDoAuth('+isSetup+','+callback+')" style="width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:700;cursor:pointer">'+btnText+'</button>'
-    +'<p style="font-size:11px;color:var(--sub);margin:12px 0 0">当前设备：'+_finDeviceId().substring(0,8)+'...</p>'
+    +'<h3 style="margin:0 0 4px;font-size:17px">财务管家验证</h3>'
+    +'<p style="font-size:12px;color:var(--sub);margin:0 0 16px">请输入访问密码</p>'
+    +'<input class="form-input" type="password" id="finPwdInput" placeholder="输入密码" style="width:100%;margin-bottom:12px;text-align:center;font-size:18px;letter-spacing:4px">'
+    +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);margin-bottom:12px;cursor:pointer"><input type="checkbox" id="finRememberCb">记住我（本设备免密7天）</label>'
+    +'<button onclick="finVerifyPwd()" style="width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:700;cursor:pointer">解锁</button>'
     +'</div>';
-  mask.onclick=function(e){if(e.target===mask){}/* 不允许关闭 */};
+  mask.onclick=function(e){if(e.target===mask)finCloseLockScreen();};
   document.body.appendChild(mask);
-  setTimeout(function(){document.getElementById('finAuthPwd').focus();},100);
-  // 回车确认
-  var inp=document.getElementById('finAuthPwd');
-  inp.onkeydown=function(e){if(e.key==='Enter')finDoAuth(isSetup,callback);};
-  if(isSetup){document.getElementById('finAuthPwd2').onkeydown=function(e){if(e.key==='Enter')finDoAuth(isSetup,callback);};}
+  setTimeout(function(){var el=document.getElementById('finPwdInput');if(el)el.focus();},100);
+  document.getElementById('finPwdInput').onkeydown=function(e){if(e.key==='Enter')finVerifyPwd();};
 }
-function finDoAuth(isSetup,callback){
-  var pwd=document.getElementById('finAuthPwd').value;
-  if(!pwd||pwd.length<4){showToast('⚠️ 密码至少4位');return;}
-  if(isSetup){
-    var pwd2=document.getElementById('finAuthPwd2').value;
-    if(pwd!==pwd2){showToast('⚠️ 两次密码不一致');return;}
-    finSetPassword(pwd);
-    _finPwd=pwd;
-    finTrustCurrentDevice();
-    // 加密现有明文数据
-    _finMigrateData(pwd);
-    showToast('✅ 密码设置成功');
-    document.getElementById('finAuthMask').remove();
-    callback(true);
+function finCloseLockScreen(){
+  var mask=document.getElementById('finLockScreen');
+  if(mask)mask.remove();
+}
+function finVerifyPwd(){
+  var input=document.getElementById('finPwdInput');
+  if(!input)return;
+  var pwd=input.value;
+  var stored=localStorage.getItem('fin_pwd')||'';
+  if(pwd===stored){
+    sessionStorage.setItem('fin_auth','ok');
+    if(document.getElementById('finRememberCb')&&document.getElementById('finRememberCb').checked){
+      localStorage.setItem('fin_remember','ok');
+    }
+    finCloseLockScreen();
+    finShowFinanceUI();
   }else{
-    if(!finVerifyPassword(pwd)){showToast('❌ 密码错误');return;}
-    _finPwd=pwd;
-    finTrustCurrentDevice();
-    document.getElementById('finAuthMask').remove();
-    callback(true);
+    showToast('❌ 密码错误');
+    input.value='';
+    input.focus();
   }
-}
-function _finMigrateData(pwd){
-  // 将明文数据迁移为加密数据
-  _finPwd=pwd;
-  var recRaw=localStorage.getItem(FIN_REC_KEY);
-  if(recRaw&&!recRaw.startsWith('enc:')){
-    try{var data=JSON.parse(recRaw);_finSaveEncrypted(FIN_REC_KEY,data);}catch(e){}
-  }
-  var setRaw=localStorage.getItem(FIN_SET_KEY);
-  if(setRaw&&!setRaw.startsWith('enc:')){
-    try{var data2=JSON.parse(setRaw);_finSaveEncrypted(FIN_SET_KEY,data2);}catch(e){}
-  }
-  localStorage.setItem(FIN_DEVICES_KEY,'enc:'+_finEncrypt([],pwd));
 }
 
-function finLoadSettings(){try{var s=_finLoadEncrypted(FIN_SET_KEY);if(s)finSettings={...finSettings,...s};}catch(e){}}
-function finLoadRecords(){try{var r=_finLoadEncrypted(FIN_REC_KEY);if(r)finRecords=r;else finRecords=[];}catch(e){finRecords=[];}}
-function finSaveRecords(){_finSaveEncrypted(FIN_REC_KEY,finRecords);}
-function finSaveSettings(){_finSaveEncrypted(FIN_SET_KEY,finSettings);}
+function finLoadSettings(){try{var s=JSON.parse(localStorage.getItem(FIN_SET_KEY)||"{}");if(s)finSettings={...finSettings,...s};}catch(e){}}
+function finLoadRecords(){try{var r=JSON.parse(localStorage.getItem(FIN_REC_KEY)||"[]");if(r)finRecords=r;}catch(e){finRecords=[];}}
+function finSaveRecords(){try{localStorage.setItem(FIN_REC_KEY,JSON.stringify(finRecords));}catch(e){}}
+function finSaveSettings(){try{localStorage.setItem(FIN_SET_KEY,JSON.stringify(finSettings));}catch(e){}}
 function finTodayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function finMonthStr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function finGetMonthRecords(ms){return finRecords.filter(function(r){return r.date.startsWith(ms);});}
@@ -2330,18 +2228,32 @@ function finCalcStreak(){
 }
 
 function openFinance(){
-  finCheckAuth(function(ok){
-    if(!ok)return;
-    document.getElementById('finView').style.display='block';
-    document.querySelector('.header').style.display='none';
-    document.querySelector('.progress-wrap').style.display='none';
-    document.getElementById('studyFocusBar').style.display='none';
-    document.getElementById('dayTabs').style.display='none';
-    document.getElementById('mainArea').style.display='none';
-    document.getElementById('timerBar').style.display='none';
-    finTabIdx=0;finStatMonthOffset=0;
-    finRender();
-  });
+  // 检查是否已认证
+  if(finCheckAuth()){
+    finShowFinanceUI();
+    return;
+  }
+  // 未认证，检查是否设置了密码
+  if(finIsSetPwd()){
+    // 已设密码，显示锁屏
+    finShowLockScreen();
+  }else{
+    // 未设密码，直接进，并提示去设置
+    sessionStorage.setItem('fin_auth','ok');
+    finShowFinanceUI();
+    showToast('💡 建议在设置里设置财务密码');
+  }
+}
+function finShowFinanceUI(){
+  document.getElementById('finView').style.display='block';
+  document.querySelector('.header').style.display='none';
+  document.querySelector('.progress-wrap').style.display='none';
+  document.getElementById('studyFocusBar').style.display='none';
+  document.getElementById('dayTabs').style.display='none';
+  document.getElementById('mainArea').style.display='none';
+  document.getElementById('timerBar').style.display='none';
+  finTabIdx=0;finStatMonthOffset=0;
+  finRender();
 }
 function closeFinance(){
   document.getElementById('finView').style.display='none';
@@ -2531,9 +2443,19 @@ function finRenderSettings(){
   h+='<div class="fin-setting-row"><label>攒钱截止日期</label><input type="month" id="finSetDeadline" value="'+finSettings.deadline+'"></div>';
   h+='<div class="fin-setting-row"><label>每月固定支出</label><input type="number" id="finSetFixed" value="'+finSettings.fixedCost+'" title="饭钱1050+话费100+唇膏70+药53"></div>';
   h+='<button class="fin-save-btn" onclick="finSaveSettingsForm()">💾 保存设置</button></div>';
-  h+='<div class="fin-card"><div class="fin-card-title">🔐 安全设置</div>';
-  h+='<button class="fin-save-btn" onclick="finChangePassword()" style="margin-top:0;margin-bottom:8px">🔑 修改密码</button>';
-  h+='<div style="font-size:12px;color:var(--sub);line-height:1.6;padding:4px 0">当前设备ID：'+_finDeviceId().substring(0,12)+'...<br>数据已加密存储，换设备需验证密码</div></div>';
+  h+='<div class="fin-card"><div class="fin-card-title">🔐 访问密码</div>';
+  var hasPwd=localStorage.getItem('fin_pwd')?'已设置':'未设置';
+  h+='<div style="font-size:12px;color:var(--sub);margin-bottom:8px">当前状态：'+hasPwd+'</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px">';
+  if(hasPwd==='已设置'){
+    h+='<input type="password" id="finOldPwdInput" placeholder="旧密码" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px">';
+  }
+  h+='<input type="password" id="finNewPwdInput" placeholder="新密码（至少4位）" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px">';
+  h+='<input type="password" id="finNewPwdInput2" placeholder="确认新密码" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px">';
+  h+='<button class="fin-save-btn" onclick="finSavePwdInline()" style="margin-top:0">🔑 '+(hasPwd==='已设置'?'修改密码':'设置密码')+'</button>';
+  h+='</div>';
+  h+='<button class="fin-save-btn" onclick="finClearPwd()" style="margin-top:8px;background:linear-gradient(135deg,#e17055,#d63031)">🗑️ 清除密码</button>';
+  h+='<div style="font-size:11px;color:var(--sub);line-height:1.6;padding:4px 0">设置密码后，每次打开需验证<br>忘记密码会丢失所有财务数据</div></div>';
   h+='<div class="fin-card"><div class="fin-card-title">🔧 数据管理</div>';
   h+='<button class="fin-save-btn" onclick="finExportData()" style="margin-top:0;margin-bottom:8px">📤 导出数据</button>';
   h+='<button class="fin-save-btn" onclick="document.getElementById(\'finImportFile\').click()" style="margin-top:0;background:linear-gradient(135deg,#6c5ce7,#a29bfe)">📥 导入数据</button>';
@@ -3113,6 +3035,73 @@ function buildAIContext(){
 
 // ── Init ──
 load();autoSyncFromYesterday();initTheme();calcInitWeek();currentDay=todayDayKey();render();renderStudyFocusBar();checkVersionUpdate();initPWA();
-</script>
+
+function finShowSetPwdModal(){
+  var hasPwd=!!localStorage.getItem('fin_pwd');
+  var mask=document.createElement('div');mask.className='modal-mask';mask.style.zIndex='2000';
+  var title=hasPwd?'🔑 修改密码':'🔑 设置密码';
+  var btnText=hasPwd?'确认修改':'确认设置';
+  mask.innerHTML='<div onclick="event.stopPropagation()" style="background:var(--card);border-radius:16px;padding:24px;width:300px;max-width:85vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    +'<div style="font-size:32px;margin-bottom:8px">🔐</div>'
+    +'<h3 style="margin:0 0 4px;font-size:17px">'+title+'</h3>'
+    +(hasPwd?'<input class="form-input" type="password" id="finOldPwd" placeholder="旧密码" style="width:100%;margin-bottom:8px;text-align:center;font-size:15px">':'')
+    +'<input class="form-input" type="password" id="finNewPwd" placeholder="新密码（至少4位）" style="width:100%;margin-bottom:8px;text-align:center;font-size:15px">'
+    +'<input class="form-input" type="password" id="finNewPwd2" placeholder="确认新密码" style="width:100%;margin-bottom:12px;text-align:center;font-size:15px">'
+    +'<button onclick="finDoSetPwd()" style="width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:700;cursor:pointer">'+btnText+'</button>'
+    +'</div>';
+  mask.onclick=function(e){if(e.target===mask){mask.remove();}};
+  document.body.appendChild(mask);
+  setTimeout(function(){document.getElementById('finNewPwd').focus();},100);
+}
+function finDoSetPwd(){
+  var oldPwd=document.getElementById('finOldPwd')?document.getElementById('finOldPwd').value:'';
+  var newPwd=document.getElementById('finNewPwd').value;
+  var newPwd2=document.getElementById('finNewPwd2').value;
+  if(!newPwd||newPwd.length<4){showToast('⚠️ 密码至少4位');return;}
+  if(newPwd!==newPwd2){showToast('⚠️ 两次密码不一致');return;}
+  var storedPwd=localStorage.getItem('fin_pwd')||'';
+  if(oldPwd&&storedPwd&&oldPwd!==storedPwd){showToast('❌ 旧密码错误');return;}
+  localStorage.setItem('fin_pwd',newPwd);
+  var mask=document.querySelector('.modal-mask');
+  if(mask)mask.remove();
+  showToast('✅ 密码设置成功');
+}
+function finClearPwd(){
+  if(!confirm('确定清除密码？清除后财务管家将不再需要验证。'))return;
+  localStorage.removeItem('fin_pwd');
+  localStorage.removeItem('fin_remember');
+  sessionStorage.removeItem('fin_auth');
+  showToast('✅ 密码已清除');
+  // 重新渲染设置页面
+  if(document.getElementById('finTabContent'))finRenderSettings();
+}
+
+function finSavePwdInline(){
+  var oldPwdInput=document.getElementById('finOldPwdInput');
+  var oldPwd=oldPwdInput?oldPwdInput.value:'';
+  var newPwd=document.getElementById('finNewPwdInput').value;
+  var newPwd2=document.getElementById('finNewPwdInput2').value;
+  
+  if(!newPwd||newPwd.length<4){
+    showToast('⚠️ 密码至少4位');
+    return;
+  }
+  if(newPwd!==newPwd2){
+    showToast('⚠️ 两次密码不一致');
+    return;
+  }
+  
+  var storedPwd=localStorage.getItem('fin_pwd')||'';
+  if(oldPwdInput&&storedPwd&&oldPwd!==storedPwd){
+    showToast('❌ 旧密码错误');
+    return;
+  }
+  
+  localStorage.setItem('fin_pwd',newPwd);
+  showToast('✅ 密码设置成功');
+  finRenderSettings(); // 重新渲染，更新状态
+}
+
+  </script>
 </body>
 </html>
