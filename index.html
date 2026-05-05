@@ -4201,10 +4201,17 @@ function finRenderSettings(){
   h+='<button class="fin-save-btn" onclick="finClearPwd()" style="margin-top:8px;background:linear-gradient(135deg,#e17055,#d63031)">🗑️ 清除密码</button>';
   h+='<div style="font-size:11px;color:var(--sub);line-height:1.6;padding:4px 0">设置密码后，每次打开需验证<br>忘记密码会丢失所有财务数据</div></div>';
   h+='<div class="fin-card"><div class="fin-card-title">🔧 数据管理</div>';
-  h+='<button class="fin-save-btn" onclick="finExportData()" style="margin-top:0;margin-bottom:8px">📤 导出数据</button>';
-  h+='<button class="fin-save-btn" onclick="document.getElementById(\'finImportFile\').click()" style="margin-top:0;background:linear-gradient(135deg,#6c5ce7,#a29bfe)">📥 导入数据</button>';
+  h+='<button class="fin-save-btn" onclick="finExportData()" style="margin-top:0;margin-bottom:8px">📤 导出财务数据</button>';
+  h+='<button class="fin-save-btn" onclick="document.getElementById(\'finImportFile\').click()" style="margin-top:0;margin-bottom:8px;background:linear-gradient(135deg,#6c5ce7,#a29bfe)">📥 导入财务数据</button>';
   h+='<input type="file" id="finImportFile" accept=".json" style="display:none" onchange="finImportData(event)">';
-  h+='<button class="fin-save-btn" onclick="finClearMonth()" style="margin-top:8px;background:linear-gradient(135deg,#e17055,#d63031)">🗑️ 清空当月数据</button>';
+  h+='<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">';
+  h+='<div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px">📦 全量数据备份（推荐！）</div>';
+  h+='<button class="fin-save-btn" onclick="exportAllData()" style="margin-top:0;margin-bottom:8px;background:linear-gradient(135deg,#00b894,#00cec9)">📦 全量备份（所有数据）</button>';
+  h+='<button class="fin-save-btn" onclick="document.getElementById(\'importAllFile\').click()" style="margin-top:0;margin-bottom:8px;background:linear-gradient(135deg,#fd79a8,#e84393)">📂 全量恢复（所有数据）</button>';
+  h+='<input type="file" id="importAllFile" accept=".json" style="display:none" onchange="importAllData(event)">';
+  h+='<div style="font-size:11px;color:var(--sub);line-height:1.6;margin-bottom:8px">全量备份包含：财务数据、考公笔记、日程、设置等所有 localStorage 数据。<br>清缓存后，导入此文件即可恢复全部数据。</div>';
+  h+='<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">';
+  h+='<button class="fin-save-btn" onclick="finClearMonth()" style="margin-top:0;background:linear-gradient(135deg,#e17055,#d63031)">🗑️ 清空当月财务数据</button>';
   h+='<button class="fin-danger-btn" onclick="finClearAll()">⚠️ 清空全部数据</button></div>';
   el.innerHTML=h;
 }
@@ -4465,6 +4472,46 @@ function finImportData(e){
   if(data.settings){finSettings={...finSettings,...data.settings};finSaveSettings();}
   showToast('✅ 导入成功');finRender();}catch(err){showToast('❌ 导入失败');}};
   reader.readAsText(file);e.target.value='';
+}
+/* ===== 全量数据备份/恢复 ===== */
+function exportAllData(){
+  var allData={};
+  for(var i=0;i<localStorage.length;i++){
+    var key=localStorage.key(i);
+    allData[key]=localStorage.getItem(key);
+  }
+  allData._exportTime=new Date().toISOString();
+  allData._version='v3.0.0';
+  var blob=new Blob([JSON.stringify(allData,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='xuange_all_data_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast('📦 全量数据已备份！清缓存后用「全量恢复」还原');
+}
+function importAllData(e){
+  var file=e.target.files[0];if(!file)return;
+  if(!confirm('导入将覆盖当前所有数据，确定继续？')){e.target.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var data=JSON.parse(ev.target.result);
+      // 清空当前 localStorage
+      localStorage.clear();
+      // 恢复所有数据（跳过内部字段）
+      for(var key in data){
+        if(key==='_exportTime'||key==='_version')continue;
+        localStorage.setItem(key,data[key]);
+      }
+      showToast('✅ 全量恢复成功！页面将自动刷新...');
+      setTimeout(function(){location.reload();},1500);
+    }catch(err){
+      showToast('❌ 导入失败：文件格式错误');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
 }
 function finChangePassword(){
   var modal=document.getElementById('finChgPwdModal');
