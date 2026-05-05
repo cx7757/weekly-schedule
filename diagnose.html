@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>诊断测试</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#f5f6fa;}
+.pass{color:green;} .fail{color:red;}
+#log{background:#fff;padding:15px;border-radius:10px;margin-top:10px;font-size:14px;white-space:pre-wrap;}
+</style>
+</head>
+<body>
+<h3>index.html 诊断报告</h3>
+<div id="log">正在检测...</div>
+<script>
+const log = document.getElementById('log');
+let results = [];
+
+// 1. Check HTML structure
+results.push('=== HTML结构 ===');
+results.push('DOCTYPE: ' + (document.documentElement.nodeType === 9 ? 'OK' : 'FAIL'));
+results.push('charset: ' + document.querySelector('meta[charset]').content);
+
+// 2. Check key elements exist
+results.push('\n=== 关键元素 ===');
+const ids = ['scheduleHeader','progressWrap','dayTabs','mainArea','timerBar','notesView','notesContent','notesNav','notesPageTitle','notesTotal','notesFilter','notesSearchInput','notesFab','notesThemeBtn'];
+ids.forEach(id => {
+  const el = document.getElementById(id);
+  results.push(id + ': ' + (el ? 'OK' : '<span class="fail">MISSING!</span>'));
+});
+
+// 3. Check key functions exist
+results.push('\n=== 关键函数 ===');
+const fns = ['render','openNotes','closeNotes','goHome','openNotesCat','toggleTheme','submitAdd','load','save','initTheme'];
+fns.forEach(fn => {
+  results.push(fn + '(): ' + (typeof window[fn] === 'function' ? 'OK' : '<span class="fail">MISSING!</span>'));
+});
+
+// 4. Check constants
+results.push('\n=== 常量 ===');
+results.push('NOTES_DB: ' + (typeof NOTES_DB !== 'undefined' ? 'OK, ' + Object.keys(NOTES_DB).length + ' categories' : '<span class="fail">MISSING!</span>'));
+results.push('NOTES_COLORS: ' + (typeof NOTES_COLORS !== 'undefined' ? 'OK' : '<span class="fail">MISSING!</span>'));
+results.push('NOTES_ICONS: ' + (typeof NOTES_ICONS !== 'undefined' ? 'OK' : '<span class="fail">MISSING!</span>'));
+results.push('DAYS: ' + (typeof DAYS !== 'undefined' ? 'OK' : '<span class="fail">MISSING!</span>'));
+
+// 5. Check V7 features
+results.push('\n=== V7功能 ===');
+results.push('Eisenhower matrix: ' + (typeof openMatrixModal === 'function' ? 'OK' : '<span class="fail">MISSING!</span>'));
+results.push('Timer: ' + (typeof startTimer === 'function' ? 'OK' : '<span class="fail">MISSING!</span>'));
+results.push('Settings: ' + (typeof openSettings === 'function' ? 'OK' : '<span class="fail">MISSING!</span>'));
+results.push('Summary: ' + (typeof openSummary === 'function' ? 'OK' : '<span class="fail">MISSING!</span>'));
+results.push('Monthly: ' + (typeof openMonthly === 'function' ? 'OK' : '<span class="fail">MISSING!</span>'));
+
+// 6. Count notes
+if (typeof NOTES_DB !== 'undefined') {
+  let total = 0;
+  for (const cat of Object.keys(NOTES_DB)) {
+    for (const sub of Object.keys(NOTES_DB[cat])) {
+      total += NOTES_DB[cat][sub].length;
+    }
+  }
+  results.push('\n=== 资料统计 ===');
+  results.push('Total notes: ' + total);
+  for (const cat of Object.keys(NOTES_DB)) {
+    let catTotal = 0;
+    for (const sub of Object.keys(NOTES_DB[cat])) {
+      catTotal += NOTES_DB[cat][sub].length;
+    }
+    results.push(cat + ': ' + catTotal + ' (' + Object.keys(NOTES_DB[cat]).join('/') + ')');
+  }
+}
+
+log.innerHTML = results.join('\n');
+</script>
+</body>
+</html>

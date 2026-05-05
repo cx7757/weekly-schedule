@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>考公信息追踪仪表盘</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+         background: #f0f2f5; color: #333; }
+  header { background: linear-gradient(135deg,#2C5F8A,#1a3d5c);
+           color:#fff; padding:24px 32px; }
+  header h1 { font-size:22px; margin-bottom:6px; }
+  header p  { font-size:13px; opacity:.8; }
+  .badge { display:inline-block; background:rgba(255,255,255,.2);
+           padding:2px 10px; border-radius:20px; font-size:12px;
+           margin-left:10px; vertical-align:middle; }
+  .stats { display:flex; gap:16px; padding:20px 32px; flex-wrap:wrap; }
+  .stat-box { background:#fff; border-radius:10px; padding:16px 24px;
+              box-shadow:0 2px 8px rgba(0,0,0,.08); min-width:140px; }
+  .stat-box .num { font-size:28px; font-weight:700; color:#2C5F8A; }
+  .stat-box .label { font-size:13px; color:#888; margin-top:4px; }
+  .main { padding:0 32px 32px; }
+  .section-title { font-size:15px; font-weight:600; color:#555;
+                   margin:16px 0 10px; padding-left:4px; }
+  .card { background:#fff; border-radius:10px; margin-bottom:20px;
+          box-shadow:0 2px 8px rgba(0,0,0,.08); overflow:hidden; }
+  .card-header { padding:14px 20px; display:flex; align-items:center;
+                 gap:12px; border-bottom:1px solid #f0f0f0; }
+  .source-tag { color:#fff; padding:3px 10px; border-radius:20px;
+                font-size:13px; font-weight:600; }
+  .count { color:#888; font-size:13px; margin-left:auto; }
+  .new-badge { background:#ff4d4f; color:#fff; font-size:11px;
+               padding:1px 7px; border-radius:10px; margin-left:6px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { background:#fafafa; padding:10px 16px; text-align:left;
+       color:#666; font-weight:500; border-bottom:1px solid #f0f0f0; }
+  td { padding:10px 16px; border-bottom:1px solid #f8f8f8; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:#f9fbff; }
+  a { color:#2C5F8A; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .tag-new { display:inline-block; background:#fff3cd; color:#856404;
+             font-size:11px; padding:1px 6px; border-radius:4px;
+             margin-right:4px; border:1px solid #ffc107; }
+  .tag-wz { display:inline-block; background:#e8f4fd; color:#0066cc;
+            font-size:11px; padding:1px 6px; border-radius:4px;
+            margin-right:4px; }
+  .refresh-btn { position:fixed; bottom:24px; right:24px;
+                 background:#2C5F8A; color:#fff; border:none;
+                 border-radius:50px; padding:12px 24px; font-size:14px;
+                 cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.2); }
+  .refresh-btn:hover { background:#1a3d5c; }
+  .notice-bar { background:#fffbe6; border:1px solid #ffe58f;
+                border-radius:8px; padding:12px 20px; margin:0 32px 16px;
+                font-size:13px; color:#7c5400; }
+  .timeline { padding:0 32px 20px; }
+  .tl-item { display:flex; gap:16px; margin-bottom:20px; }
+  .tl-dot { width:12px; height:12px; border-radius:50%; background:#2C5F8A;
+            margin-top:4px; flex-shrink:0; }
+  .tl-dot.done { background:#27AE60; }
+  .tl-dot.future { background:#ddd; }
+  .tl-line { display:flex; flex-direction:column; }
+  .tl-date { font-size:12px; color:#aaa; }
+  .tl-title { font-size:14px; font-weight:500; }
+  .tl-desc { font-size:13px; color:#888; margin-top:2px; }
+  @media(max-width:600px) {
+    .stats,.main,.timeline { padding-left:16px; padding-right:16px; }
+    .notice-bar { margin-left:16px; margin-right:16px; }
+    header { padding:16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 考公信息追踪仪表盘
+    <span class="badge">示例预览版</span>
+  </h1>
+  <p>运行 crawler.py 后，此页面将自动填充真实公告数据 · 当前时间 <span id="now"></span></p>
+</header>
+
+<div class="notice-bar">
+  ⚠️ 当前显示的是示例数据。运行 <strong>python crawler.py</strong> 后，真实公告将自动显示在这里。
+  如需微信推送新公告，请在 crawler.py 中填入 Server酱 SendKey。
+</div>
+
+<!-- 统计卡片 -->
+<div class="stats">
+  <div class="stat-box">
+    <div class="num" id="total">12</div>
+    <div class="label">已收录公告</div>
+  </div>
+  <div class="stat-box">
+    <div class="num" style="color:#ff4d4f" id="new-count">3</div>
+    <div class="label">今日新增</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">4</div>
+    <div class="label">监控来源</div>
+  </div>
+  <div class="stat-box">
+    <div class="num" id="countdown">--</div>
+    <div class="label">距省考预计时间</div>
+  </div>
+</div>
+
+<!-- 考试时间线 -->
+<div class="main">
+  <div class="section-title">📅 2026年考公时间线</div>
+  <div class="card" style="padding:20px 24px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">国考报名</div>
+        <div style="font-weight:600">2025年10月</div>
+        <div style="font-size:12px;color:#27AE60">✅ 已结束</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">国考笔试</div>
+        <div style="font-weight:600">2025年11-12月</div>
+        <div style="font-size:12px;color:#27AE60">✅ 已结束</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">浙江省考报名</div>
+        <div style="font-weight:600">2026年预计3-4月</div>
+        <div style="font-size:12px;color:#F0A500">⏳ 待确认</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">浙江省考笔试</div>
+        <div style="font-weight:600">2026年预计5月</div>
+        <div style="font-size:12px;color:#888">⬜ 未开始</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">温州事业编</div>
+        <div style="font-weight:600">全年滚动招聘</div>
+        <div style="font-size:12px;color:#2C5F8A">🔄 持续关注</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 公告列表：浙江省考 -->
+  <div class="section-title">最新公告</div>
+  <div class="card">
+    <div class="card-header" style="border-left:4px solid #2C5F8A">
+      <span class="source-tag" style="background:#2C5F8A">浙江省考-公务员</span>
+      <span class="new-badge">2 新</span>
+      <span class="count">共 4 条</span>
+    </div>
+    <table>
+      <thead><tr><th>公告标题</th><th>发布日期</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag-new">新</span><span class="tag-wz">温州</span>
+            <a href="https://gwy.zjks.com" target="_blank">2026年浙江省公务员考试温州市职位表（示例）</a></td>
+          <td>2026-04-16</td>
+          <td style="color:#ff4d4f">📌 重要</td>
+        </tr>
+        <tr>
+          <td><span class="tag-new">新</span>
+            <a href="https://gwy.zjks.com" target="_blank">2026年浙江省公务员考试报名公告（示例）</a></td>
+          <td>2026-04-15</td>
+          <td style="color:#F0A500">⏳ 报名中</td>
+        </tr>
+        <tr>
+          <td><a href="https://gwy.zjks.com" target="_blank">2026年浙江省公务员考试笔试大纲（示例）</a></td>
+          <td>2026-04-10</td>
+          <td style="color:#888">📄 参考</td>
+        </tr>
+        <tr>
+          <td><a href="https://gwy.zjks.com" target="_blank">关于2026年浙江省考资格复审通知（示例）</a></td>
+          <td>2026-03-28</td>
+          <td style="color:#888">📄 参考</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 浙江事业编 -->
+  <div class="card">
+    <div class="card-header" style="border-left:4px solid #27AE60">
+      <span class="source-tag" style="background:#27AE60">浙江事业编</span>
+      <span class="new-badge">1 新</span>
+      <span class="count">共 3 条</span>
+    </div>
+    <table>
+      <thead><tr><th>公告标题</th><th>发布日期</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag-new">新</span><span class="tag-wz">温州</span>
+            <a href="https://qssy.zjks.com" target="_blank">温州市属事业单位2026年第一批公开招聘公告（示例）</a></td>
+          <td>2026-04-14</td>
+          <td style="color:#F0A500">⏳ 报名中</td>
+        </tr>
+        <tr>
+          <td><span class="tag-wz">温州</span>
+            <a href="https://qssy.zjks.com" target="_blank">温州医科大学附属医院2026年招聘公告（示例）</a></td>
+          <td>2026-04-08</td>
+          <td style="color:#888">📄 参考</td>
+        </tr>
+        <tr>
+          <td><a href="https://qssy.zjks.com" target="_blank">浙江省事业单位统一招聘笔试通知（示例）</a></td>
+          <td>2026-04-01</td>
+          <td style="color:#888">📄 参考</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 温州人社局 -->
+  <div class="card">
+    <div class="card-header" style="border-left:4px solid #E05C2A">
+      <span class="source-tag" style="background:#E05C2A">温州人社局</span>
+      <span class="count">共 3 条</span>
+    </div>
+    <table>
+      <thead><tr><th>公告标题</th><th>发布日期</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><a href="https://rlzybzj.wenzhou.gov.cn" target="_blank">温州市2026年国有企业公开招聘信息汇总（示例）</a></td>
+          <td>2026-04-12</td>
+          <td style="color:#2C5F8A">🔍 关注中</td>
+        </tr>
+        <tr>
+          <td><a href="https://rlzybzj.wenzhou.gov.cn" target="_blank">鹿城区2026年第二批事业单位招聘公告（示例）</a></td>
+          <td>2026-04-05</td>
+          <td style="color:#888">📄 参考</td>
+        </tr>
+        <tr>
+          <td><a href="https://rlzybzj.wenzhou.gov.cn" target="_blank">温州市劳动就业服务中心2026年招聘（示例）</a></td>
+          <td>2026-03-20</td>
+          <td style="color:#888">📄 参考</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 快捷导航 -->
+  <div class="section-title">🔗 快捷导航</div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:32px">
+    <a href="https://gwy.zjks.com" target="_blank"
+       style="background:#2C5F8A;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px">
+      浙江省考官网 →</a>
+    <a href="https://qssy.zjks.com" target="_blank"
+       style="background:#27AE60;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px">
+      浙江事业编官网 →</a>
+    <a href="https://rlzybzj.wenzhou.gov.cn" target="_blank"
+       style="background:#E05C2A;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px">
+      温州人社局 →</a>
+    <a href="https://www.gjgwy.gov.cn" target="_blank"
+       style="background:#8E44AD;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px">
+      国家公务员局 →</a>
+  </div>
+
+</div>
+
+<button class="refresh-btn" onclick="window.location.reload()">🔄 刷新</button>
+
+<script>
+// 显示当前时间
+function updateTime() {
+  const now = new Date();
+  document.getElementById("now").textContent =
+    now.toLocaleString("zh-CN", {hour12: false});
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+// 倒计时：距离2026浙江省考预计时间（暂设5月1日）
+function updateCountdown() {
+  const target = new Date("2026-05-01T09:00:00");
+  const now = new Date();
+  const diff = target - now;
+  if (diff <= 0) {
+    document.getElementById("countdown").textContent = "已到来";
+    return;
+  }
+  const days = Math.floor(diff / 86400000);
+  document.getElementById("countdown").textContent = days + " 天";
+}
+updateCountdown();
+setInterval(updateCountdown, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>轩哥计划 - 一键修复</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f0f23;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#1a1a2e;border-radius:16px;padding:24px;max-width:400px;width:100%;text-align:center;border:1px solid #333}
+h1{font-size:20px;margin-bottom:8px}
+h2{font-size:16px;color:#aaa;margin-bottom:16px}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;color:#fff}
+.btn-primary{background:linear-gradient(135deg,#6c5ce7,#a29bfe)}
+.btn-danger{background:linear-gradient(135deg,#e17055,#d63031)}
+.btn-success{background:linear-gradient(135deg,#00b894,#00cec9)}
+.log{background:#0a0a1a;border-radius:8px;padding:12px;text-align:left;font-size:12px;font-family:monospace;max-height:200px;overflow-y:auto;margin-top:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+.log .ok{color:#00b894}
+.log .err{color:#e17055}
+.log .info{color:#74b9ff}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🔧 轩哥计划 一键修复</h1>
+<h2>修复财务管家记录不显示问题</h2>
+<button class="btn btn-primary" onclick="doFix()">🛠️ 开始修复</button>
+<button class="btn btn-danger" onclick="doReset()">🗑️ 重置财务数据（删除所有记录）</button>
+<button class="btn btn-success" onclick="doTestRecord()">✅ 添加测试记录验证</button>
+<div class="log" id="log"></div>
+</div>
+<script>
+function log(msg,type){
+  var el=document.getElementById('log');
+  var cls=type==='ok'?'ok':type==='err'?'err':'info';
+  el.innerHTML+='<span class="'+cls+'">'+msg+'</span>\n';
+  el.scrollTop=el.scrollHeight;
+}
+function getRecKey(){return 'xg_fin_records';}
+function getSetKey(){return 'xg_fin_settings';}
+
+function doFix(){
+  log('=== 开始修复 ===','info');
+  
+  // 1. 检查当前记录数据
+  var recRaw=localStorage.getItem(getRecKey());
+  log('localStorage原始数据(前200字符): '+(recRaw?recRaw.substring(0,200):'(空)'),'info');
+  
+  if(!recRaw){
+    log('无记录数据，初始化空数组','ok');
+    localStorage.setItem(getRecKey,'[]');
+    log('修复完成！请打开轩哥计划重新进入财务管家','ok');
+    return;
+  }
+  
+  // 2. 尝试解析
+  if(recRaw.startsWith('enc:')){
+    log('⚠️ 数据是加密状态！','err');
+    log('加密数据无法直接修复，建议点击「重置财务数据」','err');
+    log('然后重新开始记录','err');
+    return;
+  }
+  
+  try{
+    var data=JSON.parse(recRaw);
+    if(!Array.isArray(data)){
+      log('数据不是数组格式，类型: '+typeof data,'err');
+      log('正在重置为空数组...','info');
+      localStorage.setItem(getRecKey(),'[]');
+      log('已重置','ok');
+      return;
+    }
+    log('记录数: '+data.length,'info');
+    
+    // 3. 检查每条记录格式
+    var fixed=0;
+    var valid=[];
+    for(var i=0;i<data.length;i++){
+      var r=data[i];
+      if(!r||typeof r!=='object'||!r.amount||!r.date){
+        log('第'+i+'条数据异常，跳过: '+JSON.stringify(r).substring(0,80),'err');
+        fixed++;
+        continue;
+      }
+      // 确保必要字段存在
+      if(!r.id) r.id=Date.now()+i;
+      if(!r.cat) r.cat=r.category||'other';
+      if(!r.type) r.type='expense';
+      if(!r.name) r.name='未命名';
+      if(!r.time) r.time=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+      if(!r.account) r.account='wechat';
+      valid.push(r);
+    }
+    
+    if(fixed>0||valid.length!==data.length){
+      log('修复了 '+fixed+' 条异常数据','ok');
+      localStorage.setItem(getRecKey(),JSON.stringify(valid));
+      log('已保存修复后的数据 ('+valid.length+'条)','ok');
+    }else{
+      log('所有数据格式正常','ok');
+    }
+    
+    // 4. 检查设置
+    var setRaw=localStorage.getItem(getSetKey());
+    if(setRaw){
+      try{
+        var s=JSON.parse(setRaw);
+        log('当前设置: '+JSON.stringify(s),'info');
+        if(s.deadline==='2026-09'){
+          s.deadline='2027-06';
+          localStorage.setItem(getSetKey(),JSON.stringify(s));
+          log('已更新deadline: 2026-09 → 2027-06','ok');
+        }
+      }catch(e){}
+    }
+    
+    log('=== 修复完成 ===','ok');
+    log('请返回轩哥计划，重新进入财务管家','ok');
+    
+  }catch(e){
+    log('JSON解析失败: '+e.message,'err');
+    log('正在重置为空数组...','info');
+    localStorage.setItem(getRecKey(),'[]');
+    log('已重置','ok');
+  }
+}
+
+function doReset(){
+  if(!confirm('确定要删除所有财务记录吗？此操作不可恢复！'))return;
+  localStorage.setItem(getRecKey(),'[]');
+  log('已清空所有财务记录','ok');
+  log('请返回轩哥计划重新进入财务管家','ok');
+}
+
+function doTestRecord(){
+  var recRaw=localStorage.getItem(getRecKey());
+  var records=[];
+  if(recRaw&&!recRaw.startsWith('enc:')){
+    try{records=JSON.parse(recRaw);}catch(e){}
+  }
+  records.push({
+    id:Date.now(),
+    cat:'food',
+    amount:15,
+    name:'测试记录',
+    date:new Date().toISOString().split('T')[0],
+    time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),
+    type:'expense',
+    account:'wechat'
+  });
+  localStorage.setItem(getRecKey(),JSON.stringify(records));
+  log('已添加测试记录（午饭¥15），共'+records.length+'条','ok');
+  log('请返回轩哥计划，切到记账tab查看','ok');
+}
+</script>
+</body>
+</html>

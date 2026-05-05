@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>JS错误检测</title>
+</head>
+<body>
+<h3>测试index.html中的NOTES_DB</h3>
+<div id="result">检查中...</div>
+<script>
+try {
+  // 从index.html中提取SCRIPT内容测试
+  fetch('index.html')
+    .then(r => r.text())
+    .then(html => {
+      const match = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/);
+      if (!match) {
+        document.getElementById('result').innerHTML = '<span style="color:red">未找到script标签</span>';
+        return;
+      }
+      const code = match[1];
+      // 尝试执行代码中的NOTES_DB部分
+      try {
+        // 只执行NOTES_DB定义
+        const notesMatch = code.match(/const NOTES_DB=(\{[\s\S]*?\});\s*$/m);
+        if (!notesMatch) {
+          document.getElementById('result').innerHTML = '<span style="color:red">未找到NOTES_DB</span>';
+          return;
+        }
+        eval('var NOTES_DB=' + notesMatch[1]);
+        let total = 0;
+        for (const cat of Object.keys(NOTES_DB)) {
+          for (const sub of Object.keys(NOTES_DB[cat])) {
+            total += NOTES_DB[cat][sub].length;
+          }
+        }
+        document.getElementById('result').innerHTML = '<span style="color:green">NOTES_DB正常! 共' + total + '条</span>';
+      } catch(e) {
+        document.getElementById('result').innerHTML = '<span style="color:red">NOTES_DB错误: ' + e.message + '</span>';
+      }
+    });
+} catch(e) {
+  document.getElementById('result').innerHTML = '<span style="color:red">加载失败: ' + e.message + '</span>';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "sessions": {
+    "b1ba985112174b33827eca75652365cd": [
+      {
+        "expertId": "FrontendDeveloper",
+        "name": "像素匠",
+        "profession": "前端开发工程师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/FrontendDeveloper/FrontendDeveloper.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/FrontendDeveloper/FrontendDeveloper_zh.md",
+        "usedAt": 1776861963890,
+        "industryId": "02-Engineering"
+      },
+      {
+        "expertId": "SeniorDeveloper",
+        "name": "Will",
+        "profession": "高级开发工程师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/SeniorDeveloper/SeniorDeveloper.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/SeniorDeveloper/SeniorDeveloper_zh.md",
+        "usedAt": 1775994596882,
+        "industryId": "02-Engineering"
+      },
+      {
+        "expertId": "DocumentGenerationExpert",
+        "name": "Lark",
+        "profession": "文档生成专家",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/11-ProfessionalServices/DocumentGenerationExpert/DocumentGenerationExpert.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/11-ProfessionalServices/DocumentGenerationExpert/DocumentGenerationExpert_zh.md",
+        "usedAt": 1775993946718,
+        "industryId": "all"
+      }
+    ]
+  },
+  "lastUpdated": 1776862560641
+}

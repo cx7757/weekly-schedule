@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "version": "1.0",
+    "created": "2026-05-03",
+    "last_updated": "2026-05-03",
+    "description": "轩哥财务数据持久化存储，每次对话更新后自动追加"
+  },
+  "settings": {
+    "monthly_budget": 2500,
+    "daily_food_budget": 35,
+    "travel_goal": 5000,
+    "travel_deadline": "2027-06",
+    "fixed_costs": {
+      "饭钱": 1050,
+      "话费": 100,
+      "唇膏": 70,
+      "药费": 53
+    },
+    "fixed_cost_total": 1223,
+    "accounts": ["alipay", "wechat", "cash"]
+  },
+  "records": [],
+  "monthly_summary": {}
+}

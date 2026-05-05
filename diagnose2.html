@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>诊断测试</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#f5f6fa;}
+.pass{color:green;font-weight:bold;} .fail{color:red;font-weight:bold;}
+#log{background:#fff;padding:15px;border-radius:10px;margin-top:10px;font-size:13px;white-space:pre-wrap;max-width:600px;}
+</style>
+</head>
+<body>
+<h3>index.html 运行时诊断</h3>
+<div id="log">加载中...</div>
+<script>
+// 加载index.html并执行其JS
+var xhr = new XMLHttpRequest();
+xhr.open('GET', 'index.html', false); // sync
+try {
+  xhr.send();
+  var html = xhr.responseText;
+  var match = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
+  if (!match) {
+    document.getElementById('log').textContent = 'ERROR: Cannot find script block';
+  } else {
+    var results = [];
+    
+    // Mock browser APIs
+    var mockLS = {};
+    var origLS = window.localStorage;
+    var mockStorage = {
+      getItem: function(k) { return mockLS[k] || null; },
+      setItem: function(k,v) { mockLS[k] = v; },
+      removeItem: function(k) { delete mockLS[k]; },
+      clear: function() { mockLS = {}; },
+      get length() { return Object.keys(mockLS).length; },
+      key: function(i) { return Object.keys(mockLS)[i]; }
+    };
+    
+    try {
+      // Replace localStorage temporarily
+      // Execute the script
+      var scriptEl = document.createElement('script');
+      scriptEl.textContent = match[1];
+      document.head.appendChild(scriptEl);
+      document.head.removeChild(scriptEl);
+      
+      results.push('=== JS执行: 通过 ===');
+      
+      // Check elements
+      var ids = ['scheduleHeader','progressWrap','dayTabs','mainArea','timerBar','notesView','notesContent','notesNav','notesPageTitle','notesTotal','notesFilter','notesSearchInput','notesFab','notesThemeBtn'];
+      results.push('\n=== HTML元素检查 ===');
+      ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+          results.push(id + ': <span class="pass">OK</span> (' + el.tagName + ')');
+        } else {
+          results.push(id + ': <span class="fail">MISSING</span>');
+        }
+      });
+      
+      // Check functions
+      results.push('\n=== 函数检查 ===');
+      var fns = ['render','openNotes','closeNotes','goHome','openNotesCat','toggleTheme','submitAdd','load','save','initTheme','openMatrixModal','startTimer','openSettings','openSummary','openMonthly'];
+      fns.forEach(function(fn) {
+        results.push(fn + ': ' + (typeof window[fn] === 'function' ? '<span class="pass">OK</span>' : '<span class="fail">MISSING</span>'));
+      });
+      
+      // Check data
+      results.push('\n=== 数据检查 ===');
+      results.push('NOTES_DB: ' + (typeof NOTES_DB !== 'undefined' ? '<span class="pass">OK</span>, ' + Object.keys(NOTES_DB).length + ' categories' : '<span class="fail">MISSING</span>'));
+      
+      if (typeof NOTES_DB !== 'undefined') {
+        var total = 0;
+        for (var cat in NOTES_DB) {
+          for (var sub in NOTES_DB[cat]) {
+            total += NOTES_DB[cat][sub].length;
+          }
+        }
+        results.push('Total items: ' + total);
+      }
+      
+      // Check render output
+      if (typeof render === 'function') {
+        try {
+          // Check if mainArea was populated
+          var mainEl = document.getElementById('mainArea');
+          if (mainEl && mainEl.innerHTML.length > 0) {
+            results.push('\n=== Render: <span class="pass">OK</span> ===');
+            results.push('mainArea content length: ' + mainEl.innerHTML.length + ' chars');
+          } else {
+            results.push('\n=== Render: <span class="fail">EMPTY</span> ===');
+            results.push('mainArea innerHTML: "' + (mainEl ? mainEl.innerHTML : 'null') + '"');
+          }
+        } catch(e) {
+          results.push('\n=== Render error: ' + e.message + ' ===');
+        }
+      }
+      
+    } catch(e) {
+      results.push('<span class="fail">JS EXECUTION ERROR:</span>');
+      results.push(e.name + ': ' + e.message);
+      if (e.stack) {
+        var lines = e.stack.split('\n').slice(0, 5);
+        results.push(lines.join('\n'));
+      }
+    }
+    
+    document.getElementById('log').innerHTML = results.join('\n');
+  }
+} catch(e) {
+  document.getElementById('log').textContent = 'XHR Error: ' + e.message + '\n(index.html must be on same server/domain for this test)';
+}
+</script>
+</body>
+</html>

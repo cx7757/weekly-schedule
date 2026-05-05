@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>输入框测试</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f0f23;color:#e0e0e0;min-height:100vh;padding:20px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:18px;margin-bottom:8px}
+.card{background:#1a1a2e;border-radius:12px;padding:16px}
+input,button{font-size:16px;padding:12px;border-radius:8px;border:1px solid #333;background:#0a0a1a;color:#e0e0e0;width:100%}
+button{background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;border:none;font-weight:600;cursor:pointer;margin-top:8px}
+.log{background:#0a0a1a;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;min-height:60px;white-space:pre-wrap;word-break:break-all}
+.success{color:#00b894}.error{color:#e17055}.info{color:#74b9ff}
+</style>
+</head>
+<body>
+<h1>🔧 输入框测试页</h1>
+<div class="card">
+  <p style="margin-bottom:8px">测试1：普通文本输入</p>
+  <input type="text" id="test1" placeholder="试试能不能输入文字" style="margin-bottom:8px">
+  <div class="log" id="log1">等待输入...</div>
+</div>
+<div class="card">
+  <p style="margin-bottom:8px">测试2：数字输入（和财务管家一样）</p>
+  <input type="number" id="test2" placeholder="0.00" inputmode="decimal" step="0.01" style="margin-bottom:8px">
+  <button onclick="checkNum()">检查数值</button>
+  <div class="log" id="log2">等待输入...</div>
+</div>
+<div class="card">
+  <p style="margin-bottom:8px">测试3：模拟财务弹窗</p>
+  <button onclick="openSheet()" style="margin-bottom:8px">打开弹窗</button>
+  <div id="sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;border-radius:20px 20px 0 0;padding:20px;z-index:1000">
+    <div style="text-align:center;margin-bottom:12px">输入金额</div>
+    <input type="number" id="sheetInput" style="width:100%;font-size:32px;text-align:center;padding:12px;border-radius:12px;border:2px solid #6c5ce7;background:none;color:#fff" inputmode="decimal" step="0.01" placeholder="0.00">
+    <button onclick="closeSheet()" style="margin-top:12px">确认</button>
+  </div>
+  <div class="log" id="log3">点击「打开弹窗」测试</div>
+</div>
+<script>
+document.getElementById('test1').addEventListener('input',function(e){
+  document.getElementById('log1').innerHTML='<span class="success">✅ 可以输入！值：'+this.value+'</span>';
+});
+document.getElementById('test2').addEventListener('input',function(e){
+  document.getElementById('log2').innerHTML='<span class="success">✅ 数字输入正常！值：'+this.value+'</span>';
+});
+function checkNum(){
+  var v=document.getElementById('test2').value;
+  document.getElementById('log2').innerHTML='<span class="info">当前值：'+v+'（类型：'+typeof v+')</span>';
+}
+function openSheet(){
+  document.getElementById('log3').innerHTML='<span class="info">弹窗已打开，试试输入数字...</span>';
+  var sheet=document.getElementById('sheet');
+  sheet.style.display='block';
+  setTimeout(function(){document.getElementById('sheetInput').focus();},100);
+}
+function closeSheet(){
+  var v=document.getElementById('sheetInput').value;
+  document.getElementById('log3').innerHTML='<span class="success">✅ 输入的值：'+v+'</span>';
+  document.getElementById('sheet').style.display='none';
+}
+// 自动聚焦第一个输入框测试
+setTimeout(function(){
+  try{
+    document.getElementById('test1').focus();
+    document.getElementById('log1').innerHTML='<span class="info">已自动聚焦第一个输入框，请尝试输入...</span>';
+  }catch(e){}
+},500);
+</script>
+</body>
+</html>
